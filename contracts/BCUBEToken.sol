@@ -10,7 +10,7 @@ contract BCUBEToken is Ownable, ERC20Capped, ERC20Snapshot {
     constructor(uint256 initialSupply)
         public
         ERC20("b-cube.ai Token", "BCUBE")
-        ERC20Capped(50_000_000e18)
+        ERC20Capped(500_000_000e18)
     {
         _mint(msg.sender, initialSupply);
     }
@@ -31,13 +31,13 @@ contract BCUBEToken is Ownable, ERC20Capped, ERC20Snapshot {
         address from,
         address to,
         uint256 amount
-    ) internal virtual override {
+    ) internal override(ERC20Capped, ERC20Snapshot) {
         super._beforeTokenTransfer(from, to, amount);
 
         if (from == address(0)) {
             require(
                 totalSupply().add(amount) <= cap(),
-                "ERC20Capped: cap exceeded"
+                "BCUBEToken: cap exceeded"
             );
         }
     }
