@@ -11,14 +11,23 @@ contract BCubePrivateSale is Ownable {
     uint256 public releaseTime;
     uint256 public bCubePrice;
     uint256 public ethPrice;
+    uint256 public hardCap;
+    uint256 public softCap;
 
     receive() external payable {
         emit LogEtherReceived(_msgSender(), msg.value);
     }
 
-    constructor(uint256 _bCubePrice, uint256 _releaseTime) public {
+    constructor(
+        uint256 _bCubePrice,
+        uint256 _releaseTime,
+        uint256 _hardCap,
+        uint256 _softCap
+    ) public {
         bCubePrice = _bCubePrice;
         releaseTime = _releaseTime;
+        hardCap = _hardCap;
+        softCap = _softCap;
     }
 
     function setBCubePrice(uint256 _bCubePrice) external onlyOwner {
@@ -26,8 +35,18 @@ contract BCubePrivateSale is Ownable {
     }
 
     function buyBCubeUsingEther() external payable {
-        bCubeAllocationRegistry[_msgSender()] = ethPrice.mul(msg.value).div(
-            bCubePrice
+        uint256 bCubeAllocated;
+        require(
+            (1000_000_000 <= ethPrice.mul(msg.value).div(10e18)) &&
+                (ethPrice.mul(msg.value).div(10e18) <= 25000_000_000),
+            "Contribution has to be in the range $1000 - $25000!"
         );
+        bCubeAllocated = ethPrice.mul(msg.value).div(bCubePrice);
+        bCubeAllocationRegistry[_msgSender()] = bCubeAllocated;
+        if (hardCap.sub(bCubeAllocated) >= 0) {
+            hardCap = hardCap.sub(bCubeAllocated);
+        } else {
+            revert("Hard cap reached. Cannot buy more BCUBE!");
+        }
     }
 }
