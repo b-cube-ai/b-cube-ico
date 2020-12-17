@@ -3,38 +3,72 @@ pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract BCubePrivateSale is Ownable {
     using SafeMath for uint256;
 
     mapping(address => uint256) public bCubeAllocationRegistry;
     uint256 public releaseTime;
-    uint256 public bCubePrice;
-    uint256 public ethPrice;
     uint256 public hardCap;
     uint256 public softCap;
+    uint256 public openingTime;
+    uint256 public closingTime;
+
+    IERC20 public bCubeToken;
+    uint256 public bCubePrice;
+    uint256 public ethPrice;
+    uint256 public weiRaised;
 
     receive() external payable {
         emit LogEtherReceived(_msgSender(), msg.value);
+    }
+
+    modifier isOpen() {
+        require(
+            block.timestamp >= _openingTime && block.timestamp <= _closingTime,
+            "Crowdsale not open!"
+        );
+        _;
     }
 
     constructor(
         uint256 _bCubePrice,
         uint256 _releaseTime,
         uint256 _hardCap,
-        uint256 _softCap
+        uint256 _softCap,
+        uint256 _openingTime,
+        uint256 _closingTime
     ) public {
         bCubePrice = _bCubePrice;
         releaseTime = _releaseTime;
         hardCap = _hardCap;
         softCap = _softCap;
+        openingTime = _openingTime;
+        closingTime = _closingTime;
     }
 
-    function setBCubePrice(uint256 _bCubePrice) external onlyOwner {
-        bCubePrice = _bCubePrice;
+    function setReleaseTime(uint256 _releaseTime) external onlyOwner {
+        releaseTime = _releaseTime;
     }
 
-    function buyBCubeUsingEther() external payable {
+    function setHardCap(uint256 _hardCap) external onlyOwner {
+        hardCap = _hardCap;
+    }
+
+    function setSoftCap(uint256 _softCap) external onlyOwner {
+        softCap = _softCap;
+    }
+
+    function setOpeningTime(uint256 _openingTime) external onlyOwner {
+        openingTime = _openingTime;
+    }
+
+    function setClosingTime(uint256 _closingTime) external onlyOwner {
+        closingTime = _closingTime;
+    }
+
+    function buyBCubeUsingEther() external payable isOpen {
         uint256 bCubeAllocated;
         require(
             (1000_000_000 <= ethPrice.mul(msg.value).div(10e18)) &&
@@ -42,9 +76,10 @@ contract BCubePrivateSale is Ownable {
             "Contribution has to be in the range $1000 - $25000!"
         );
         bCubeAllocated = ethPrice.mul(msg.value).div(bCubePrice);
-        bCubeAllocationRegistry[_msgSender()] = bCubeAllocated;
         if (hardCap.sub(bCubeAllocated) >= 0) {
             hardCap = hardCap.sub(bCubeAllocated);
+            bCubeAllocationRegistry[_msgSender()] = bCubeAllocated;
+            weiRaised = weiRaised.add(msg.value);
         } else {
             revert("Hard cap reached. Cannot buy more BCUBE!");
         }
