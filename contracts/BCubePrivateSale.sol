@@ -11,7 +11,6 @@ contract BCubePrivateSale is Ownable {
     mapping(address => uint256) public bCubeAllocationRegistry;
     uint256 public releaseTime;
     uint256 public hardCap;
-    uint256 public softCap;
     uint256 public openingTime;
     uint256 public closingTime;
 
@@ -20,13 +19,15 @@ contract BCubePrivateSale is Ownable {
     uint256 public ethPrice;
     uint256 public weiRaised;
 
+    event LogEtherReceived(address indexed sender, uint256 value);
+
     receive() external payable {
         emit LogEtherReceived(_msgSender(), msg.value);
     }
 
     modifier isOpen() {
         require(
-            block.timestamp >= _openingTime && block.timestamp <= _closingTime,
+            block.timestamp >= openingTime && block.timestamp <= closingTime,
             "Crowdsale not open!"
         );
         _;
@@ -36,14 +37,12 @@ contract BCubePrivateSale is Ownable {
         uint256 _bCubePrice,
         uint256 _releaseTime,
         uint256 _hardCap,
-        uint256 _softCap,
         uint256 _openingTime,
         uint256 _closingTime
     ) public {
         bCubePrice = _bCubePrice;
         releaseTime = _releaseTime;
         hardCap = _hardCap;
-        softCap = _softCap;
         openingTime = _openingTime;
         closingTime = _closingTime;
     }
@@ -54,10 +53,6 @@ contract BCubePrivateSale is Ownable {
 
     function setHardCap(uint256 _hardCap) external onlyOwner {
         hardCap = _hardCap;
-    }
-
-    function setSoftCap(uint256 _softCap) external onlyOwner {
-        softCap = _softCap;
     }
 
     function setOpeningTime(uint256 _openingTime) external onlyOwner {

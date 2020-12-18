@@ -6,11 +6,11 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Capped.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Snapshot.sol";
 
-contract BCUBEToken is Ownable, ERC20Capped, ERC20Snapshot {
+contract BCUBEToken is ERC20, Ownable, ERC20Capped, ERC20Snapshot {
     constructor(uint256 initialSupply)
         public
         ERC20("b-cube.ai Token", "BCUBE")
-        ERC20Capped(500_000_000e18)
+        ERC20Capped(50_000_000e18)
     {
         _mint(msg.sender, initialSupply);
     }
@@ -33,12 +33,5 @@ contract BCUBEToken is Ownable, ERC20Capped, ERC20Snapshot {
         uint256 amount
     ) internal override(ERC20Capped, ERC20Snapshot) {
         super._beforeTokenTransfer(from, to, amount);
-
-        if (from == address(0)) {
-            require(
-                totalSupply().add(amount) <= cap(),
-                "BCUBEToken: cap exceeded"
-            );
-        }
     }
 }
