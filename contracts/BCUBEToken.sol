@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Capped.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Snapshot.sol";
 
-contract BCUBEToken is ERC20, Ownable, ERC20Capped, ERC20Snapshot {
+contract BCUBEToken is ERC20Capped, ERC20Snapshot, Ownable {
     constructor(uint256 initialSupply)
         public
         ERC20("b-cube.ai Token", "BCUBE")

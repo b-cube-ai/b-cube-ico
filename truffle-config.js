@@ -42,11 +42,11 @@ module.exports = {
     // tab if you use this network and you must also set the `host`, `port` and `network_id`
     // options below to some value.
     //
-    // development: {
-    //  host: "127.0.0.1",     // Localhost (default: none)
-    //  port: 8545,            // Standard Ethereum port (default: none)
-    //  network_id: "*",       // Any network (default: none)
-    // },
+    development: {
+      host: "127.0.0.1", // Localhost (default: none)
+      port: 8545, // Standard Ethereum port (default: none)
+      network_id: "*", // Any network (default: none)
+    },
     // Another network with more advanced options...
     // advanced: {
     // port: 8777,             // Custom port
@@ -73,13 +73,6 @@ module.exports = {
     // production: true    // Treats this network as if it was a public net. (default: false)
     // }
   },
-
-  // Set default mocha options here, use special reporters etc.
-  mocha: {
-    // timeout: 100000
-  },
-
-  // Configure your compilers
   compilers: {
     solc: {
       version: "^0.6.0",
@@ -91,4 +84,14 @@ module.exports = {
       },
     },
   },
+  // Set default mocha options here, use special reporters etc.
+  mocha: {
+    reporter: "eth-gas-reporter",
+    reporterOptions: { excludeContracts: ["Migrations"] },
+  },
+  etherscan: {
+    apiKey: "VTFWZ1QCXGKUSP67U5DM788633D5BGRXZJ", //replace this with your API key if you have one
+  },
+  plugins: ["solidity-coverage"],
+  // Configure your compilers
 };
