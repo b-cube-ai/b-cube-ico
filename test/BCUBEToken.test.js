@@ -6,53 +6,24 @@ web3 = new Web3(provider);
 const BCUBEToken = artifacts.require("BCUBEToken");
 // const moment = require("moment");
 const truffleAssert = require("truffle-assertions");
+const BN = require("big-number");
 
 describe("BCUBE token properties/functions", function () {
   this.timeout(3600000);
-  let signal;
+  let snapshotID;
   let result, b_cube;
   function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
   before(async function () {
     accounts = await web3.eth.getAccounts();
-    bcubeDeployed = await BCUBEToken.new("1000000000000000000000");
+    bcubeDeployed = await BCUBEToken.new(
+      "1000000000000000000000",
+      "50000000000000000000000000"
+    );
     CONSTANTS.TOKEN_ADDRESS = bcubeDeployed.address;
     // CONSTANTS.BCUBE_ADDRESS = "0x0fef71ba53077ee0a67424fa7560c84a4bb618af";
     bcube = new web3.eth.Contract(CONSTANTS.TOKEN_ABI, CONSTANTS.TOKEN_ADDRESS);
-    // tether = new web3.eth.Contract(
-    //   CONSTANTS.TETHER_ABI,
-    //   CONSTANTS.TETHER_ADDRESS
-    // );
-    // sends 1 ETH to tether owner and BCube contract
-    // await web3.eth.sendTransaction({
-    //   from: accounts[0],
-    //   to: "0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828",
-    //   value: web3.utils.toWei("1", "ether"),
-    // });
-    // await web3.eth.sendTransaction({
-    //   from: accounts[0],
-    //   to: CONSTANTS.BCUBE_ADDRESS,
-    //   value: web3.utils.toWei("5", "ether"),
-    // });
-    // issues 1m USDT to tether owner
-    // await tether.methods.issue("1000000000000").send({
-    //   from: "0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828",
-    // });
-    // transfers 1000 USDT to top 5 ganache accounts and these accounts approve 100 USDT to BCube contract
-    // asyncForEach = async (array, callback) => {
-    //   for (let index = 0; index < array.length; index++) {
-    //     await callback(array[index], index, array);
-    //   }
-    // };
-    // await asyncForEach(accounts.slice(0, 3), async (account) => {
-    //   await tether.methods.transfer(account, "1000000000").send({
-    //     from: "0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828",
-    //   });
-    //   await tether.methods.approve(CONSTANTS.BCUBE_ADDRESS, "100000000").send({
-    //     from: account,
-    //   });
-    // });
   });
 
   it("should check token's name", async function () {
@@ -109,7 +80,7 @@ describe("BCUBE token properties/functions", function () {
     await bcube.methods.approve(accounts[1], "200000000000000000000").send({
       from: accounts[0],
     });
-    await bcube.methods
+    tfr = await bcube.methods
       .transferFrom(accounts[0], accounts[2], "200000000000000000000")
       .send({
         from: accounts[1],
@@ -157,6 +128,14 @@ describe("BCUBE token properties/functions", function () {
 
   it("should check increase in totalSupply after mint()", async function () {
     totalSupply = await bcube.methods.totalSupply().call();
+    // await bcube.methods.takeSnapshot().send({
+    //   from: accounts[0],
+    // });
+    // snapshotID = await bcube.methods.takeSnapshot().call();
+    // console.log("Snap", snapshotID);
+    // snapshotID = await bcube.methods.takeSnapshot().call();
+    // console.log("Snap", snapshotID);
+    // snapshotID = obj.events.Snapshot.id;
     expect(totalSupply).to.equal("1100000000000000000000");
   });
 
@@ -164,6 +143,11 @@ describe("BCUBE token properties/functions", function () {
     await bcube.methods.burn("200000000000000000000").send({
       from: accounts[0],
     });
+    // await bcube.methods.takeSnapshot().send({
+    //   from: accounts[0],
+    // });
+    // snapshotID = await bcube.methods.takeSnapshot().call();
+    // console.log("Snap", snapshotID);
     balance = await bcube.methods.balanceOf(accounts[0]).call();
     expect(balance).to.equal("500000000000000000000");
   });
@@ -172,6 +156,16 @@ describe("BCUBE token properties/functions", function () {
     totalSupply = await bcube.methods.totalSupply().call();
     expect(totalSupply).to.equal("900000000000000000000");
   });
+
+  // it("should check accounts[0]'s balance before burn with snapshot", async function () {
+  //   balance = await bcube.methods.balanceOfAt(accounts[0], snapshotID).call();
+  //   expect(balance).to.equal("700000000000000000000");
+  // });
+
+  // it("should check totalSupply before burn with snapshot", async function () {
+  //   balance = await bcube.methods.totalSupplyAt(snapshotID).call();
+  //   expect(balance).to.equal("1100000000000000000000");
+  // });
 
   it("should check cap() to be 50m", async function () {
     cap = await bcube.methods.cap().call();
