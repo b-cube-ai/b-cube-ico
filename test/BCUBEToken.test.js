@@ -26,6 +26,11 @@ describe("BCUBE token properties/functions", function () {
     bcube = new web3.eth.Contract(CONSTANTS.TOKEN_ABI, CONSTANTS.TOKEN_ADDRESS);
   });
 
+  it("should check if contract owner is deployer", async function () {
+    owner = await bcube.methods.owner().call();
+    expect(owner).to.equal(accounts[0]);
+  });
+
   it("should check token's name", async function () {
     naam = await bcube.methods.name().call();
     expect(naam).to.equal("b-cube.ai Token");
@@ -128,14 +133,6 @@ describe("BCUBE token properties/functions", function () {
 
   it("should check increase in totalSupply after mint()", async function () {
     totalSupply = await bcube.methods.totalSupply().call();
-    // await bcube.methods.takeSnapshot().send({
-    //   from: accounts[0],
-    // });
-    // snapshotID = await bcube.methods.takeSnapshot().call();
-    // console.log("Snap", snapshotID);
-    // snapshotID = await bcube.methods.takeSnapshot().call();
-    // console.log("Snap", snapshotID);
-    // snapshotID = obj.events.Snapshot.id;
     expect(totalSupply).to.equal("1100000000000000000000");
   });
 
@@ -143,11 +140,6 @@ describe("BCUBE token properties/functions", function () {
     await bcube.methods.burn("200000000000000000000").send({
       from: accounts[0],
     });
-    // await bcube.methods.takeSnapshot().send({
-    //   from: accounts[0],
-    // });
-    // snapshotID = await bcube.methods.takeSnapshot().call();
-    // console.log("Snap", snapshotID);
     balance = await bcube.methods.balanceOf(accounts[0]).call();
     expect(balance).to.equal("500000000000000000000");
   });
@@ -156,16 +148,6 @@ describe("BCUBE token properties/functions", function () {
     totalSupply = await bcube.methods.totalSupply().call();
     expect(totalSupply).to.equal("900000000000000000000");
   });
-
-  // it("should check accounts[0]'s balance before burn with snapshot", async function () {
-  //   balance = await bcube.methods.balanceOfAt(accounts[0], snapshotID).call();
-  //   expect(balance).to.equal("700000000000000000000");
-  // });
-
-  // it("should check totalSupply before burn with snapshot", async function () {
-  //   balance = await bcube.methods.totalSupplyAt(snapshotID).call();
-  //   expect(balance).to.equal("1100000000000000000000");
-  // });
 
   it("should check cap() to be 50m", async function () {
     cap = await bcube.methods.cap().call();
@@ -179,6 +161,58 @@ describe("BCUBE token properties/functions", function () {
       }),
       "ERC20Capped: cap exceeded"
     );
+  });
+
+  it("should revert when non-owner tries to mint 5 BCUBE", async function () {
+    await truffleAssert.reverts(
+      bcube.methods.mint(accounts[0], "5000000000000000000").send({
+        from: accounts[1],
+      }),
+      "Ownable: caller is not the owner"
+    );
+  });
+
+  it("should revert when non-owner tries to burn 6 BCUBE", async function () {
+    await truffleAssert.reverts(
+      bcube.methods.burn("6000000000000000000").send({
+        from: accounts[1],
+      }),
+      "Ownable: caller is not the owner"
+    );
+  });
+
+  it("should revert when non-owner tries to transferOwnership", async function () {
+    await truffleAssert.reverts(
+      bcube.methods.transferOwnership(accounts[1]).send({
+        from: accounts[1],
+      }),
+      "Ownable: caller is not the owner"
+    );
+  });
+
+  it("should revert when non-owner tries to renounceOwnership", async function () {
+    await truffleAssert.reverts(
+      bcube.methods.renounceOwnership().send({
+        from: accounts[1],
+      }),
+      "Ownable: caller is not the owner"
+    );
+  });
+
+  it("should transfer ownership to accounts[1] successfully", async function () {
+    await bcube.methods.transferOwnership(accounts[1]).send({
+      from: accounts[0],
+    });
+    newOwner = await bcube.methods.owner().call();
+    expect(newOwner).to.equal(accounts[1]);
+  });
+
+  it("should allow owner to renounce ownership successfully", async function () {
+    await bcube.methods.renounceOwnership().send({
+      from: accounts[1],
+    });
+    newOwner = await bcube.methods.owner().call();
+    expect(newOwner).to.equal("0x0000000000000000000000000000000000000000");
   });
 
   // it("should fail fetching 1000 USDT from accounts[2], to BCube contract due to exceeding deposit hard cap", async function () {
