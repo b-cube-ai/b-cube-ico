@@ -1,16 +1,20 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
+pragma solidity 0.5.17;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
 
-contract BCUBEToken is ERC20, Ownable {
+contract BCUBEToken is ERC20, ERC20Detailed, Ownable {
     uint256 public cap;
 
-    constructor(uint256 initialSupply, uint256 _cap)
-        public
-        ERC20("b-cube.ai Token", "BCUBE")
-    {
+    constructor(
+        string memory _name,
+        string memory _symbol,
+        uint8 _decimals,
+        uint256 initialSupply,
+        uint256 _cap
+    ) public ERC20Detailed(_name, _symbol, _decimals) {
         require(_cap > 0, "ERC20Capped: cap is 0");
         cap = _cap;
         _mint(msg.sender, initialSupply);

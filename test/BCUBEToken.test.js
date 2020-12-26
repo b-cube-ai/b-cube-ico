@@ -18,6 +18,9 @@ describe("BCUBE token properties/functions", function () {
   before(async function () {
     accounts = await web3.eth.getAccounts();
     bcubeDeployed = await BCUBEToken.new(
+      "b-cube.ai Token",
+      "BCUBE",
+      "18",
       "1000000000000000000000",
       "50000000000000000000000000"
     );

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
+pragma solidity 0.5.17;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -21,7 +21,7 @@ contract BCubePrivateSale is Ownable {
 
     event LogEtherReceived(address indexed sender, uint256 value);
 
-    receive() external payable {
+    function() external payable {
         emit LogEtherReceived(_msgSender(), msg.value);
     }
 
