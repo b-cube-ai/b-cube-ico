@@ -9,31 +9,33 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/crowdsale/Crowdsale.sol";
 import "@openzeppelin/contracts/crowdsale/validation/TimedCrowdsale.sol";
 import "@openzeppelin/contracts/crowdsale/validation/WhitelistCrowdsale.sol";
-import "@chainlink/contracts/src/v0.5/interfaces/AggregatorV3Interface.sol";
+import "./BCubePrivateSale.sol";
 
 contract Treasury is BCubePrivateSale {
     using SafeMath for uint256;
     using SafeCast for uint256;
     using SafeERC20 for IERC20;
 
-    struct UserInfo {
-        uint256 dollarUnitsPayed;
-        uint256 allocatedBcube;
-    }
+    address payable public team;
+    mapping(address => uint256) advisors;
 
-    mapping(address => UserInfo) public bCubeAllocationRegistry;
-    uint256 public releaseTime;
-    uint256 public netAllocatedBcube;
-    uint256 public constant HARD_CAP = 10_000_000;
+    uint256 public teamShareWithdrawn;
+    uint256 public teamAllowance;
+    uint256 public devFundShareWithdrawn;
+    uint256 public devFundAllowance;
+    uint256 public reservesWithdrawn;
+    uint256 public communityShareWithdrawn;
+    uint256 public bountyWithdrawn;
+    uint256 public publicSaleShareWithdrawn;
 
-    AggregatorV3Interface internal priceFeedETH;
-    AggregatorV3Interface internal priceFeedUSDT;
-    IERC20 public usdt;
+    uint256 public publicSaleStartTime;
+
+    IERC20 bcube;
 
     event LogEtherReceived(address indexed sender, uint256 value);
 
-    modifier tokensRemaining() {
-        require(netAllocatedBcube <= HARD_CAP, "All tokens allocated");
+    modifier onlyTeam() {
+        require(_msgSender() == team, "Only team can call");
         _;
     }
 
@@ -42,24 +44,84 @@ contract Treasury is BCubePrivateSale {
     }
 
     constructor(
-        uint256 rate_,
-        address payable wallet_,
-        IERC20 token_,
-        uint256 _releaseTime,
-        uint256 openingTime_,
-        uint256 closingTime_
-    )
-        public
-        TimedCrowdsale(openingTime_, closingTime_)
-        Crowdsale(rate_, wallet_, token_)
-    {
-        releaseTime = _releaseTime;
-        priceFeedETH = AggregatorV3Interface(
-            0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419
+        uint256 _teamReleaseTime,
+        IERC20 _bcubeAddress,
+        address payable _team,
+        uint256 _publicSaleStartTime
+    ) public {
+        teamReleaseTime = _teamReleaseTime;
+        bcube = IERC20(_bcubeAddress);
+        team = _team;
+        publicSaleStartTime = _publicSaleStartTime;
+        teamAllowance = 625_000e18;
+    }
+
+    function setPublicSaleStartTime(uint256 _startTime) external onlyOwner {
+        publicSaleStartTime = _startTime;
+    }
+
+    function teamShareWitdraw(uint256 bcubeAmount) external onlyTeam {
+        uint256 finalTeamShareWithdrawn;
+        finalTeamShareWithdrawn = teamShareWithdrawn.add(bcubeAmount);
+        require(finalTeamShareWithdrawn <= teamAllowance, "Out of team share");
+        teamShareWithdrawn = finalTeamShareWithdrawn;
+        bcube.safeTransfer(team, bcubeAmount);
+        if (
+            now >= publicSaleStartTime + 24 weeks &&
+            teamAllowance + 625_000e18 <= 5_000_000e18
+        ) teamAllowance = teamAllowance.add(625_000e18);
+    }
+
+    function devFundShareWitdraw(uint256 bcubeAmount) external onlyTeam {
+        uint256 finalDevFundShareWithdrawn;
+        finalDevFundShareWithdrawn = devFundShareWithdrawn.add(bcubeAmount);
+        require(
+            finalDevFundShareWithdrawn <= devFundAllowance,
+            "Out of dev fund share"
         );
-        priceFeedUSDT = AggregatorV3Interface(
-            0xEe9F2375b4bdF6387aa8265dD4FB8F16512A1d46
+        devFundShareWithdrawn = finalDevFundShareWithdrawn;
+        bcube.safeTransfer(team, bcubeAmount);
+        if (
+            now >= publicSaleStartTime + 24 weeks &&
+            devFundAllowance + 1_875_000e18 <= 7_500_000e18
+        ) devFundAllowance = devFundAllowance.add(625_000e18);
+    }
+
+    function reservesShareWithdraw(uint256 bcubeAmount) external onlyTeam {
+        uint256 finalReservesWithdrawn;
+        finalReservesWithdrawn = reservesWithdrawn.add(bcubeAmount);
+        require(
+            finalReservesWithdrawn <= 7_000_000e18,
+            "Out of reserves share"
         );
-        usdt = IERC20(0xdAC17F958D2ee523a2206206994597C13D831ec7);
+        reservesWithdrawn = finalReservesWithdrawn;
+        bcube.safeTransfer(team, bcubeAmount);
+    }
+
+    function communityShareWithdraw(uint256 bcubeAmount) external onlyTeam {
+        uint256 finalCommunityShareWithdrawn;
+        finalCommunityShareWithdrawn = communityShareWithdrawn.add(bcubeAmount);
+        require(
+            finalCommunityShareWithdrawn <= 2_500_000e18,
+            "Out of community share"
+        );
+        communityShareWithdrawn = finalCommunityShareWithdrawn;
+        bcube.safeTransfer(team, bcubeAmount);
+    }
+
+    function bountyShareWithdraw(uint256 bcubeAmount) external onlyTeam {
+        uint256 finalBountyWithdrawn;
+        finalBountyWithdrawn = bountyWithdrawn.add(bcubeAmount);
+        require(finalBountyWithdrawn <= 500_000e18, "Out of bounty share");
+        bountyWithdrawn = finalBountyWithdrawn;
+        bcube.safeTransfer(team, bcubeAmount);
+    }
+
+    function publicSaleShareWithdraw(uint256 bcubeAmount) external onlyTeam {
+        uint256 finalPSSWithdrawn;
+        finalPSSWithdrawn = publicSaleShareWithdrawn.add(bcubeAmount);
+        require(finalPSSWithdrawn <= 15_000_000e18, "Out of public sale share");
+        publicSaleShareWithdrawn = finalPSSWithdrawn;
+        bcube.safeTransfer(team, bcubeAmount);
     }
 }

@@ -44,7 +44,6 @@ contract BCubePrivateSale is Ownable, TimedCrowdsale, WhitelistCrowdsale {
         uint256 rate_,
         address payable wallet_,
         IERC20 token_,
-        uint256 _releaseTime,
         uint256 openingTime_,
         uint256 closingTime_
     )
@@ -52,7 +51,6 @@ contract BCubePrivateSale is Ownable, TimedCrowdsale, WhitelistCrowdsale {
         TimedCrowdsale(openingTime_, closingTime_)
         Crowdsale(rate_, wallet_, token_)
     {
-        releaseTime = _releaseTime;
         priceFeedETH = AggregatorV3Interface(
             0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419
         );
@@ -105,7 +103,13 @@ contract BCubePrivateSale is Ownable, TimedCrowdsale, WhitelistCrowdsale {
         }
     }
 
-    function buyBcubeUsingETH() external payable onlyWhileOpen tokensRemaining {
+    function buyBcubeUsingETH()
+        external
+        payable
+        onlyWhitelisted
+        onlyWhileOpen
+        tokensRemaining
+    {
         uint256 ethPrice = uint256(fetchETHPrice());
         uint256 dollarUnits = ethPrice.div(10e18).mul(msg.value);
         super._preValidatePurchase(_msgSender(), msg.value);
@@ -116,6 +120,7 @@ contract BCubePrivateSale is Ownable, TimedCrowdsale, WhitelistCrowdsale {
     function buyBcubeUsingUSDT(uint256 incomingUsdt)
         external
         payable
+        onlyWhitelisted
         onlyWhileOpen
         tokensRemaining
     {
