@@ -1,23 +1,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.5.17;
 
-import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/SafeCast.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/crowdsale/Crowdsale.sol";
-import "@openzeppelin/contracts/crowdsale/validation/TimedCrowdsale.sol";
-import "@openzeppelin/contracts/crowdsale/validation/WhitelistCrowdsale.sol";
 import "./BCubePrivateSale.sol";
 
 contract Treasury is BCubePrivateSale {
     using SafeMath for uint256;
-    using SafeCast for uint256;
     using SafeERC20 for IERC20;
 
+    struct Advisor {
+        uint256 increaseInAllowance;
+        uint256 currentAllowance;
+        uint256 shareWithdrawn;
+    }
+
     address payable public team;
-    mapping(address => uint256) advisors;
+    mapping(address => Advisor) advisors;
 
     uint256 public teamShareWithdrawn;
     uint256 public teamAllowance;
@@ -44,23 +44,67 @@ contract Treasury is BCubePrivateSale {
     }
 
     constructor(
-        uint256 _teamReleaseTime,
         IERC20 _bcubeAddress,
         address payable _team,
         uint256 _publicSaleStartTime
     ) public {
-        teamReleaseTime = _teamReleaseTime;
         bcube = IERC20(_bcubeAddress);
         team = _team;
         publicSaleStartTime = _publicSaleStartTime;
-        teamAllowance = 625_000e18;
     }
 
     function setPublicSaleStartTime(uint256 _startTime) external onlyOwner {
         publicSaleStartTime = _startTime;
     }
 
-    function teamShareWitdraw(uint256 bcubeAmount) external onlyTeam {
+    function addAdvisor(address _newAdvisor, uint256 _netAllowance)
+        external
+        onlyOwner
+    {
+        require(_newAdvisor != address(0), "Invalid advisor address");
+        advisors[_newAdvisor].increaseInAllowance = _netAllowance.div(4);
+    }
+
+    function setAdvisorAllowance(address _advisor, uint256 _newNetAllowance)
+        external
+        onlyOwner
+    {
+        require(advisors[_advisor].increaseInAllowance > 0, "Invalid advisor");
+        advisors[_advisor].increaseInAllowance = _newNetAllowance.div(4);
+    }
+
+    function removeAdvisor(address _advisor) external onlyOwner {
+        require(advisors[_advisor].increaseInAllowance > 0, "Invalid advisor");
+        delete advisors[_advisor];
+    }
+
+    function advisorShareWithdraw(uint256 bcubeAmount) external {
+        require(
+            advisors[_msgSender()].currentAllowance >= bcubeAmount,
+            "!advisor || insufficient allowance"
+        );
+        uint256 finalAdvisorShareWithdrawn;
+        finalAdvisorShareWithdrawn = advisors[_msgSender()].shareWithdrawn.add(
+            bcubeAmount
+        );
+        require(
+            finalAdvisorShareWithdrawn <=
+                advisors[_msgSender()].currentAllowance,
+            "Out of advisor share"
+        );
+        advisors[_msgSender()].shareWithdrawn = finalAdvisorShareWithdrawn;
+        bcube.safeTransfer(_msgSender(), bcubeAmount);
+        uint256 finalAllowance =
+            advisors[_msgSender()].currentAllowance.add(
+                advisors[_msgSender()].increaseInAllowance
+            );
+        if (
+            now >= publicSaleStartTime + 24 weeks &&
+            finalAllowance <= advisors[_msgSender()].increaseInAllowance.mul(4)
+        ) advisors[_msgSender()].currentAllowance = finalAllowance;
+    }
+
+    function teamShareWithdraw(uint256 bcubeAmount) external onlyTeam {
         uint256 finalTeamShareWithdrawn;
         finalTeamShareWithdrawn = teamShareWithdrawn.add(bcubeAmount);
         require(finalTeamShareWithdrawn <= teamAllowance, "Out of team share");
@@ -68,11 +112,11 @@ contract Treasury is BCubePrivateSale {
         bcube.safeTransfer(team, bcubeAmount);
         if (
             now >= publicSaleStartTime + 24 weeks &&
-            teamAllowance + 625_000e18 <= 5_000_000e18
+            teamAllowance.add(625_000e18) <= 5_000_000e18
         ) teamAllowance = teamAllowance.add(625_000e18);
     }
 
-    function devFundShareWitdraw(uint256 bcubeAmount) external onlyTeam {
+    function devFundShareWithdraw(uint256 bcubeAmount) external onlyTeam {
         uint256 finalDevFundShareWithdrawn;
         finalDevFundShareWithdrawn = devFundShareWithdrawn.add(bcubeAmount);
         require(
@@ -83,45 +127,83 @@ contract Treasury is BCubePrivateSale {
         bcube.safeTransfer(team, bcubeAmount);
         if (
             now >= publicSaleStartTime + 24 weeks &&
-            devFundAllowance + 1_875_000e18 <= 7_500_000e18
+            devFundAllowance.add(1_875_000e18) <= 7_500_000e18
         ) devFundAllowance = devFundAllowance.add(625_000e18);
     }
 
     function reservesShareWithdraw(uint256 bcubeAmount) external onlyTeam {
-        uint256 finalReservesWithdrawn;
-        finalReservesWithdrawn = reservesWithdrawn.add(bcubeAmount);
-        require(
-            finalReservesWithdrawn <= 7_000_000e18,
-            "Out of reserves share"
+        shareWithdraw(
+            bcubeAmount,
+            reservesWithdrawn,
+            7_000_000e18,
+            "Out of reserves share",
+            0
         );
-        reservesWithdrawn = finalReservesWithdrawn;
-        bcube.safeTransfer(team, bcubeAmount);
     }
 
     function communityShareWithdraw(uint256 bcubeAmount) external onlyTeam {
-        uint256 finalCommunityShareWithdrawn;
-        finalCommunityShareWithdrawn = communityShareWithdrawn.add(bcubeAmount);
-        require(
-            finalCommunityShareWithdrawn <= 2_500_000e18,
-            "Out of community share"
+        shareWithdraw(
+            bcubeAmount,
+            communityShareWithdrawn,
+            2_500_000e18,
+            "Out of community share",
+            1
         );
-        communityShareWithdrawn = finalCommunityShareWithdrawn;
-        bcube.safeTransfer(team, bcubeAmount);
     }
 
     function bountyShareWithdraw(uint256 bcubeAmount) external onlyTeam {
-        uint256 finalBountyWithdrawn;
-        finalBountyWithdrawn = bountyWithdrawn.add(bcubeAmount);
-        require(finalBountyWithdrawn <= 500_000e18, "Out of bounty share");
-        bountyWithdrawn = finalBountyWithdrawn;
+        shareWithdraw(
+            bcubeAmount,
+            bountyWithdrawn,
+            500_000e18,
+            "Out of bounty share",
+            2
+        );
+    }
+
+    function shareWithdraw(
+        uint256 bcubeAmount,
+        uint256 specificShareWithdrawn,
+        uint256 cap,
+        string memory errMsg,
+        uint256 flag
+    ) private {
+        uint256 finalShareWithdrawn;
+        finalShareWithdrawn = specificShareWithdrawn.add(bcubeAmount);
+        require(finalShareWithdrawn <= cap, errMsg);
+        if (flag == 0) reservesWithdrawn = finalShareWithdrawn;
+        else if (flag == 1) communityShareWithdrawn = finalShareWithdrawn;
+        else if (flag == 2) bountyWithdrawn = finalShareWithdrawn;
         bcube.safeTransfer(team, bcubeAmount);
     }
 
-    function publicSaleShareWithdraw(uint256 bcubeAmount) external onlyTeam {
+    function privateSaleShareWithdraw(uint256 bcubeAmount) external {
+        require(
+            bcubeAllocationRegistry[_msgSender()].allocatedBcube > 0,
+            "0 BCUBE allocated"
+        );
         uint256 finalPSSWithdrawn;
-        finalPSSWithdrawn = publicSaleShareWithdrawn.add(bcubeAmount);
-        require(finalPSSWithdrawn <= 15_000_000e18, "Out of public sale share");
-        publicSaleShareWithdrawn = finalPSSWithdrawn;
-        bcube.safeTransfer(team, bcubeAmount);
+        finalPSSWithdrawn = bcubeAllocationRegistry[_msgSender()]
+            .shareWithdrawn
+            .add(bcubeAmount);
+        require(
+            finalPSSWithdrawn <=
+                bcubeAllocationRegistry[_msgSender()].currentAllowance,
+            "Insufficient allowance"
+        );
+        bcubeAllocationRegistry[_msgSender()]
+            .shareWithdrawn = finalPSSWithdrawn;
+        bcube.safeTransfer(_msgSender(), bcubeAmount);
+        uint256 finalAllowance =
+            bcubeAllocationRegistry[_msgSender()].currentAllowance.add(
+                bcubeAllocationRegistry[_msgSender()].allocatedBcube.div(4)
+            );
+        if (
+            now >= publicSaleStartTime + 4 weeks &&
+            finalAllowance <=
+            bcubeAllocationRegistry[_msgSender()].allocatedBcube
+        )
+            bcubeAllocationRegistry[_msgSender()]
+                .currentAllowance = finalAllowance;
     }
 }

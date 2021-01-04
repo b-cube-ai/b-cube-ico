@@ -19,9 +19,11 @@ contract BCubePrivateSale is Ownable, TimedCrowdsale, WhitelistCrowdsale {
     struct UserInfo {
         uint256 dollarUnitsPayed;
         uint256 allocatedBcube;
+        uint256 currentAllowance;
+        uint256 shareWithdrawn;
     }
 
-    mapping(address => UserInfo) public bCubeAllocationRegistry;
+    mapping(address => UserInfo) public bcubeAllocationRegistry;
     uint256 public netAllocatedBcube;
     uint256 public constant HARD_CAP = 10_000_000;
 
@@ -69,24 +71,12 @@ contract BCubePrivateSale is Ownable, TimedCrowdsale, WhitelistCrowdsale {
     }
 
     function fetchETHPrice() public view returns (int256) {
-        (
-            uint80 roundID,
-            int256 price,
-            uint256 startedAt,
-            uint256 timeStamp,
-            uint80 answeredInRound
-        ) = priceFeedETH.latestRoundData();
+        (, int256 price, , , ) = priceFeedETH.latestRoundData();
         return price;
     }
 
     function fetchUSDTPrice() public view returns (int256) {
-        (
-            uint80 roundID,
-            int256 price,
-            uint256 startedAt,
-            uint256 timeStamp,
-            uint80 answeredInRound
-        ) = priceFeedUSDT.latestRoundData();
+        (, int256 price, , , ) = priceFeedUSDT.latestRoundData();
         int256 ethUSD = fetchETHPrice();
         return price * ethUSD;
     }
@@ -149,7 +139,7 @@ contract BCubePrivateSale is Ownable, TimedCrowdsale, WhitelistCrowdsale {
             (minDollarUnits <= dollarUnits) && (dollarUnits <= 25000_0000_0000),
             "Contribution range for this round exceeded"
         );
-        netUserDollarUnits = bCubeAllocationRegistry[_msgSender()]
+        netUserDollarUnits = bcubeAllocationRegistry[_msgSender()]
             .dollarUnitsPayed
             .add(dollarUnits);
         require(
@@ -160,10 +150,10 @@ contract BCubePrivateSale is Ownable, TimedCrowdsale, WhitelistCrowdsale {
         finalAllocation = netAllocatedBcube.add(bcubeAllocatedToUser);
         require(finalAllocation <= HARD_CAP, "Hard cap exceeded");
         netAllocatedBcube = finalAllocation;
-        bCubeAllocationRegistry[_msgSender()]
+        bcubeAllocationRegistry[_msgSender()]
             .dollarUnitsPayed = netUserDollarUnits;
-        bCubeAllocationRegistry[_msgSender()]
-            .allocatedBcube = bCubeAllocationRegistry[_msgSender()]
+        bcubeAllocationRegistry[_msgSender()]
+            .allocatedBcube = bcubeAllocationRegistry[_msgSender()]
             .allocatedBcube
             .add(bcubeAllocatedToUser);
     }
