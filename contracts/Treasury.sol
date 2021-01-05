@@ -161,6 +161,16 @@ contract Treasury is BCubePrivateSale {
         );
     }
 
+    function publicSaleShareWithdraw(uint256 bcubeAmount) external onlyTeam {
+        shareWithdraw(
+            bcubeAmount,
+            publicSaleShareWithdrawn,
+            25_000_000e18 - netAllocatedBcube,
+            "Out of publicSale share",
+            3
+        );
+    }
+
     function shareWithdraw(
         uint256 bcubeAmount,
         uint256 specificShareWithdrawn,
@@ -174,6 +184,7 @@ contract Treasury is BCubePrivateSale {
         if (flag == 0) reservesWithdrawn = finalShareWithdrawn;
         else if (flag == 1) communityShareWithdrawn = finalShareWithdrawn;
         else if (flag == 2) bountyWithdrawn = finalShareWithdrawn;
+        else if (flag == 3) publicSaleShareWithdrawn = finalShareWithdrawn;
         bcube.safeTransfer(team, bcubeAmount);
     }
 

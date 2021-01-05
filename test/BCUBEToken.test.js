@@ -10,11 +10,6 @@ const BN = require("big-number");
 
 describe("BCUBE token properties/functions", function () {
   this.timeout(3600000);
-  let snapshotID;
-  let result, b_cube;
-  function sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
   before(async function () {
     accounts = await web3.eth.getAccounts();
     bcubeDeployed = await BCUBEToken.new(
@@ -217,20 +212,4 @@ describe("BCUBE token properties/functions", function () {
     newOwner = await bcube.methods.owner().call();
     expect(newOwner).to.equal("0x0000000000000000000000000000000000000000");
   });
-
-  // it("should fail fetching 1000 USDT from accounts[2], to BCube contract due to exceeding deposit hard cap", async function () {
-  //   await truffleAssert.reverts(
-  //     bCube.methods
-  //       .fetchTokens(
-  //         CONSTANTS.TETHER_ADDRESS,
-  //         [accounts[0], accounts[1], accounts[2]],
-  //         ["1000000000", "1000000000", "1000000000"]
-  //       )
-  //       .send({
-  //         from: accounts[0],
-  //         gasLimit: 6000000,
-  //       }),
-  //     "Hard cap limit exceeded!"
-  //   );
-  // });
 });

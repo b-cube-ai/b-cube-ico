@@ -43,7 +43,6 @@ contract BCubePrivateSale is Ownable, TimedCrowdsale, WhitelistCrowdsale {
     }
 
     constructor(
-        uint256 rate_,
         address payable wallet_,
         IERC20 token_,
         uint256 openingTime_,
@@ -51,7 +50,7 @@ contract BCubePrivateSale is Ownable, TimedCrowdsale, WhitelistCrowdsale {
     )
         public
         TimedCrowdsale(openingTime_, closingTime_)
-        Crowdsale(rate_, wallet_, token_)
+        Crowdsale(1, wallet_, token_)
     {
         priceFeedETH = AggregatorV3Interface(
             0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419
@@ -82,13 +81,13 @@ contract BCubePrivateSale is Ownable, TimedCrowdsale, WhitelistCrowdsale {
     }
 
     function calcRate() private view returns (uint256) {
-        if (netAllocatedBcube <= 2500000) {
+        if (netAllocatedBcube <= 2_500_000) {
             return 25e10;
-        } else if (netAllocatedBcube <= 5000000) {
+        } else if (netAllocatedBcube <= 5_000_000) {
             return 222222222222;
-        } else if (netAllocatedBcube <= 7500000) {
+        } else if (netAllocatedBcube <= 7_500_000) {
             return 20e10;
-        } else if (netAllocatedBcube <= 10000000) {
+        } else if (netAllocatedBcube <= 10_000_000) {
             return 181818181818;
         }
     }
