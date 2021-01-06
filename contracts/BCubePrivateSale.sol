@@ -98,9 +98,10 @@ contract BCubePrivateSale is Ownable, TimedCrowdsale, WhitelistCrowdsale {
         onlyWhitelisted
         onlyWhileOpen
         tokensRemaining
+        returns (uint256, uint256)
     {
         uint256 ethPrice = uint256(fetchETHPrice());
-        uint256 dollarUnits = ethPrice.div(10e18).mul(msg.value);
+        uint256 dollarUnits = ethPrice.mul(msg.value).div(1e18);
         super._preValidatePurchase(_msgSender(), msg.value);
         executeAllocation(dollarUnits);
         _forwardFunds();

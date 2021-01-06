@@ -86,6 +86,8 @@ describe("BCUBE Private Sale tests", function () {
       from: accounts[2],
       value: web3.utils.toWei("1", "ether"),
     });
+    // du = await bcubePS.methods.buyBcubeUsingETH().call();
+    // console.log("DU", du);
     team = await bcubePS.methods.wallet().call();
     bal = await web3.eth.getBalance(team);
     console.log("BAL", bal);
