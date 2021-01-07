@@ -25,7 +25,7 @@ contract BCubePrivateSale is Ownable, TimedCrowdsale, WhitelistCrowdsale {
 
     mapping(address => UserInfo) public bcubeAllocationRegistry;
     uint256 public netAllocatedBcube;
-    uint256 public constant HARD_CAP = 10_000_000;
+    uint256 public constant HARD_CAP = 10_000_000e18;
 
     AggregatorV3Interface internal priceFeedETH;
     AggregatorV3Interface internal priceFeedUSDT;
@@ -46,19 +46,18 @@ contract BCubePrivateSale is Ownable, TimedCrowdsale, WhitelistCrowdsale {
         address payable wallet_,
         IERC20 token_,
         uint256 openingTime_,
-        uint256 closingTime_
+        uint256 closingTime_,
+        address _chainlinkETHPriceFeed,
+        address _chainlinkUSDTPriceFeed,
+        address _usdtContract
     )
         public
         TimedCrowdsale(openingTime_, closingTime_)
         Crowdsale(1, wallet_, token_)
     {
-        priceFeedETH = AggregatorV3Interface(
-            0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419
-        );
-        priceFeedUSDT = AggregatorV3Interface(
-            0xEe9F2375b4bdF6387aa8265dD4FB8F16512A1d46
-        );
-        usdt = IERC20(0xdAC17F958D2ee523a2206206994597C13D831ec7);
+        priceFeedETH = AggregatorV3Interface(_chainlinkETHPriceFeed);
+        priceFeedUSDT = AggregatorV3Interface(_chainlinkUSDTPriceFeed);
+        usdt = IERC20(_usdtContract);
     }
 
     function rate() public view returns (uint256) {
@@ -77,17 +76,17 @@ contract BCubePrivateSale is Ownable, TimedCrowdsale, WhitelistCrowdsale {
     function fetchUSDTPrice() public view returns (int256) {
         (, int256 price, , , ) = priceFeedUSDT.latestRoundData();
         int256 ethUSD = fetchETHPrice();
-        return price * ethUSD;
+        return (price * ethUSD) / 1e18;
     }
 
     function calcRate() private view returns (uint256) {
-        if (netAllocatedBcube <= 2_500_000) {
+        if (netAllocatedBcube <= 2_500_000e18) {
             return 25e10;
-        } else if (netAllocatedBcube <= 5_000_000) {
+        } else if (netAllocatedBcube <= 5_000_000e18) {
             return 222222222222;
-        } else if (netAllocatedBcube <= 7_500_000) {
+        } else if (netAllocatedBcube <= 7_500_000e18) {
             return 20e10;
-        } else if (netAllocatedBcube <= 10_000_000) {
+        } else if (netAllocatedBcube <= 10_000_000e18) {
             return 181818181818;
         }
     }
@@ -98,7 +97,6 @@ contract BCubePrivateSale is Ownable, TimedCrowdsale, WhitelistCrowdsale {
         onlyWhitelisted
         onlyWhileOpen
         tokensRemaining
-        returns (uint256, uint256)
     {
         uint256 ethPrice = uint256(fetchETHPrice());
         uint256 dollarUnits = ethPrice.mul(msg.value).div(1e18);
@@ -115,7 +113,7 @@ contract BCubePrivateSale is Ownable, TimedCrowdsale, WhitelistCrowdsale {
         tokensRemaining
     {
         uint256 usdtPrice = uint256(fetchUSDTPrice());
-        uint256 dollarUnits = usdtPrice.div(10e18).mul(incomingUsdt);
+        uint256 dollarUnits = usdtPrice.mul(incomingUsdt).div(1e6);
         super._preValidatePurchase(_msgSender(), incomingUsdt);
         executeAllocation(dollarUnits);
         usdt.safeTransferFrom(_msgSender(), wallet(), incomingUsdt);
@@ -126,26 +124,22 @@ contract BCubePrivateSale is Ownable, TimedCrowdsale, WhitelistCrowdsale {
         uint256 bcubeAllocatedToUser;
         uint256 minDollarUnits;
         uint256 netUserDollarUnits;
-        if (netAllocatedBcube <= 2500000) {
+        if (netAllocatedBcube <= 2_500_000e18) {
             minDollarUnits = 1000_0000_0000;
-        } else if (netAllocatedBcube <= 5000000) {
+        } else if (netAllocatedBcube <= 5_000_000e18) {
             minDollarUnits = 500_0000_0000;
-        } else if (netAllocatedBcube <= 7500000) {
+        } else if (netAllocatedBcube <= 7_500_000e18) {
             minDollarUnits = 250_0000_0000;
-        } else if (netAllocatedBcube <= 10000000) {
+        } else if (netAllocatedBcube <= 10_000_000e18) {
             minDollarUnits = 100_0000_0000;
         }
         require(
-            (minDollarUnits <= dollarUnits) && (dollarUnits <= 25000_0000_0000),
+            minDollarUnits <= dollarUnits,
             "Contribution range for this round exceeded"
         );
         netUserDollarUnits = bcubeAllocationRegistry[_msgSender()]
             .dollarUnitsPayed
             .add(dollarUnits);
-        require(
-            netUserDollarUnits <= 25000_0000_0000,
-            "Contribution upper limit exceeded"
-        );
         bcubeAllocatedToUser = calcRate().mul(dollarUnits);
         finalAllocation = netAllocatedBcube.add(bcubeAllocatedToUser);
         require(finalAllocation <= HARD_CAP, "Hard cap exceeded");
