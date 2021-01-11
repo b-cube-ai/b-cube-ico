@@ -85,28 +85,16 @@ describe("BCUBE Private Sale tests", function () {
     );
   });
 
-  it("should be able to buy $BCUBE @ $0.04 using 1 ETH by buyBcubeUsingETH() by checking team's _wallet()", async function () {
+  it("should buy $BCUBE @ $0.04 using 1 ETH calling buyBcubeUsingETH(), checking allocation", async function () {
     let snapshot = await timeMachine.takeSnapshot();
     snapshotId = snapshot["result"];
     await timeMachine.advanceTimeAndBlock(2246400 + 10000);
-    // pr = await bcubePS.methods.fetchETHPrice().call();
-    // console.log("PR", pr);
     await bcubePS.methods.buyBcubeUsingETH().send({
       from: accounts[2],
       value: web3.utils.toWei("1", "ether"),
     });
-    // du = await bcubePS.methods.buyBcubeUsingETH().call();
-    // console.log("DU", du);
-    team = await bcubePS.methods.wallet().call();
-    bal = await web3.eth.getBalance(team);
-    // console.log("BAL", bal);
-    expect(bal).to.equal(web3.utils.toWei("101", "ether"));
-  });
-
-  it("should test if participant was allocated correct $BCUBE after calling buyBcubeUsingETH()", async function () {
     ethPrice = new BN(await bcubePS.methods.fetchETHPrice().call());
     ret = await bcubePS.methods.bcubeAllocationRegistry(accounts[2]).call();
-    // console.log("ret", ret);
     expect(ret.allocatedBcube).to.equal(
       ethPrice
         .multiply(100)
@@ -116,14 +104,16 @@ describe("BCUBE Private Sale tests", function () {
         .join("")
     );
   });
+  it("should test previous buy, checking team's _wallet()", async function () {
+    team = await bcubePS.methods.wallet().call();
+    bal = await web3.eth.getBalance(team);
+    expect(bal).to.equal(web3.utils.toWei("101", "ether"));
+  });
 
-  it("should be able to buy $BCUBE @ $0.04 using 1000 USDT by buyBcubeUsingUSDT() by checking team's _wallet()", async function () {
-    // await timeMachine.advanceTimeAndBlock(2246400 + 10000);
+  it("should buy $BCUBE @ $0.04 using 2000 USDT calling buyBcubeUsingUSDT(), checking allocation", async function () {
     await bcubePS.methods.addWhitelisted(accounts[3]).send({
       from: accounts[0],
     });
-    pr = await bcubePS.methods.fetchUSDTPrice().call();
-    console.log("PR_USDT", pr);
     await usdt.methods.approve(CONSTANTS.BPS_ADDRESS, "1000000000000").send({
       from: accounts[3],
     });
@@ -134,17 +124,8 @@ describe("BCUBE Private Sale tests", function () {
       from: accounts[3],
       gasLimit: 6000000,
     });
-    team = await bcubePS.methods.wallet().call();
-    bal = await usdt.methods.balanceOf(team).call();
-    // console.log("BAL", bal);
-    expect(bal).to.equal("2000000000");
-  });
-
-  it("should test if participant was allocated correct $BCUBE after calling buyBcubeUsingUSDT()", async function () {
     usdtPrice = new BN(await bcubePS.methods.fetchUSDTPrice().call());
     ret = await bcubePS.methods.bcubeAllocationRegistry(accounts[3]).call();
-    // console.log("ret", ret);
-    // await timeMachine.revertToSnapshot(snapshotId);
     expect(ret.allocatedBcube).to.equal(
       usdtPrice
         .multiply(2000)
@@ -155,8 +136,13 @@ describe("BCUBE Private Sale tests", function () {
         .join("")
     );
   });
+  it("should test previous buy, checking team's _wallet()", async function () {
+    team = await bcubePS.methods.wallet().call();
+    bal = await usdt.methods.balanceOf(team).call();
+    expect(bal).to.equal("2000000000");
+  });
 
-  it("should be able to buy $BCUBE @ $0.045 using 1 ETH by buyBcubeUsingETH() by checking team's _wallet()", async function () {
+  it("should buy $BCUBE @ $0.045 using 1 ETH calling buyBcubeUsingETH(), checking allocation", async function () {
     await bcubePS.methods.addWhitelisted(accounts[4]).send({
       from: accounts[0],
     });
@@ -168,26 +154,194 @@ describe("BCUBE Private Sale tests", function () {
       from: accounts[4],
       value: web3.utils.toWei("1", "ether"),
     });
-    // du = await bcubePS.methods.buyBcubeUsingETH().call();
-    // console.log("DU", du);
+    ethPrice = new BN(await bcubePS.methods.fetchETHPrice().call());
+    ret = await bcubePS.methods.bcubeAllocationRegistry(accounts[4]).call();
+    allocation = new BN(ret.allocatedBcube, 10);
+    shareOf4 = ethPrice
+      .multiply(1000)
+      .divide(45)
+      .multiply(new BN(10000000000))
+      .divide(new BN(1000000000000))
+      .number.reverse()
+      .join("");
+    expect(
+      allocation.divide(new BN(1000000000000)).number.reverse().join("")
+    ).to.equal(shareOf4);
+  });
+  it("should test previous buy, checking team's _wallet()", async function () {
     team = await bcubePS.methods.wallet().call();
     bal = await web3.eth.getBalance(team);
     // console.log("BAL", bal);
     expect(bal).to.equal(web3.utils.toWei("200", "ether"));
   });
 
-  it("should test if participant was allocated correct $BCUBE @ $0.045 after calling buyBcubeUsingETH()", async function () {
-    ethPrice = new BN(await bcubePS.methods.fetchETHPrice().call());
+  it("should buy $BCUBE @ $0.045 using 2000 USDT, calling buyBcubeUsingUSDT(), checking allocation", async function () {
+    await usdt.methods.issue("1000000000000").send({
+      from: "0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828",
+    });
+    await usdt.methods.transfer(accounts[4], "112600000000").send({
+      from: "0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828",
+    });
+    await usdt.methods.approve(CONSTANTS.BPS_ADDRESS, "1000000000000").send({
+      from: accounts[4],
+    });
+    await bcubePS.methods.buyBcubeUsingUSDT("2000000000").send({
+      from: accounts[4],
+      gasLimit: 6000000,
+    });
+    usdtPrice = new BN(await bcubePS.methods.fetchUSDTPrice().call());
     ret = await bcubePS.methods.bcubeAllocationRegistry(accounts[4]).call();
-    console.log("ret", ret);
-    expect(ret.allocatedBcube).to.equal(
-      ethPrice
+    allocation = new BN(ret.allocatedBcube, 10);
+    expect(
+      allocation.divide(new BN(1000000000000)).number.reverse().join("")
+    ).to.equal(
+      usdtPrice
+        .multiply(2000)
         .multiply(1000)
         .divide(45)
         .multiply(new BN(10000000000))
+        .divide(new BN(1000000000000))
+        .add(new BN(shareOf4, 10))
         .number.reverse()
         .join("")
     );
+  });
+  it("should test previous buy, checking team's wallet()", async function () {
+    team = await bcubePS.methods.wallet().call();
+    bal = await usdt.methods.balanceOf(team).call();
+    expect(bal).to.equal("4000000000");
+  });
+
+  it("should buy $BCUBE @ $0.05 using 1 ETH calling buyBcubeUsingETH(), checking allocation", async function () {
+    await bcubePS.methods.addWhitelisted(accounts[5]).send({
+      from: accounts[0],
+    });
+    await bcubePS.methods.buyBcubeUsingETH().send({
+      from: accounts[4],
+      value: web3.utils.toWei("98", "ether"),
+    });
+    await bcubePS.methods.buyBcubeUsingETH().send({
+      from: accounts[5],
+      value: web3.utils.toWei("1", "ether"),
+    });
+    ethPrice = new BN(await bcubePS.methods.fetchETHPrice().call());
+    ret = await bcubePS.methods.bcubeAllocationRegistry(accounts[5]).call();
+    allocation = new BN(ret.allocatedBcube, 10);
+    shareOf5 = ethPrice
+      .multiply(100)
+      .divide(5)
+      .multiply(new BN(10000000000))
+      .number.reverse()
+      .join("");
+    expect(allocation.number.reverse().join("")).to.equal(shareOf5);
+  });
+  it("should test previous buy by checking team's wallet()", async function () {
+    team = await bcubePS.methods.wallet().call();
+    bal = await web3.eth.getBalance(team);
+    expect(bal).to.equal(web3.utils.toWei("201", "ether"));
+  });
+
+  it("should buy $BCUBE @ $0.05 using 2000 USDT calling buyBcubeUsingUSDT(), checking allocation", async function () {
+    await usdt.methods.transfer(accounts[5], "5000000000").send({
+      from: "0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828",
+    });
+    await usdt.methods.approve(CONSTANTS.BPS_ADDRESS, "1000000000000").send({
+      from: accounts[5],
+    });
+    await bcubePS.methods.buyBcubeUsingUSDT("2000000000").send({
+      from: accounts[5],
+      gasLimit: 6000000,
+    });
+    usdtPrice = new BN(await bcubePS.methods.fetchUSDTPrice().call());
+    ret = await bcubePS.methods.bcubeAllocationRegistry(accounts[5]).call();
+    allocation = new BN(ret.allocatedBcube, 10);
+    expect(
+      allocation.divide(new BN(1000000000000)).number.reverse().join("")
+    ).to.equal(
+      usdtPrice
+        .multiply(2000)
+        .multiply(100)
+        .divide(5)
+        .multiply(new BN(10000000000))
+        .add(new BN(shareOf5, 10))
+        .divide(new BN(1000000000000))
+        .number.reverse()
+        .join("")
+    );
+  });
+  it("should test previous buy, checking team's wallet()", async function () {
+    team = await bcubePS.methods.wallet().call();
+    bal = await usdt.methods.balanceOf(team).call();
+    expect(parseInt(bal, 10)).to.be.above(114800000000);
+  });
+
+  it("should buy $BCUBE @ $0.055 using 1 ETH calling buyBcubeUsingETH(), checking allocation", async function () {
+    await bcubePS.methods.addWhitelisted(accounts[6]).send({
+      from: accounts[0],
+    });
+    await bcubePS.methods.buyBcubeUsingETH().send({
+      from: accounts[5],
+      value: web3.utils.toWei("98", "ether"),
+    });
+    await bcubePS.methods.buyBcubeUsingETH().send({
+      from: accounts[6],
+      value: web3.utils.toWei("1", "ether"),
+    });
+    ethPrice = new BN(await bcubePS.methods.fetchETHPrice().call());
+    ret = await bcubePS.methods.bcubeAllocationRegistry(accounts[6]).call();
+    allocation = new BN(ret.allocatedBcube, 10);
+    shareOf6 = ethPrice
+      .multiply(1000)
+      .divide(55)
+      .multiply(new BN(10000000000))
+      .divide(new BN(10000000000000))
+      .number.reverse()
+      .join("");
+    expect(
+      allocation.divide(new BN(10000000000000)).number.reverse().join("")
+    ).to.equal(shareOf6);
+  });
+  it("should test previous buy, checking team's wallet()", async function () {
+    team = await bcubePS.methods.wallet().call();
+    bal = await web3.eth.getBalance(team);
+    expect(bal).to.equal(web3.utils.toWei("300", "ether"));
+  });
+
+  it("should buy $BCUBE @ $0.055 using 2000 USDT calling buyBcubeUsingUSDT(), checking allocation", async function () {
+    await usdt.methods.issue("1000000000000").send({
+      from: "0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828",
+    });
+    await usdt.methods.transfer(accounts[6], "5000000000").send({
+      from: "0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828",
+    });
+    await usdt.methods.approve(CONSTANTS.BPS_ADDRESS, "1000000000000").send({
+      from: accounts[6],
+    });
+    await bcubePS.methods.buyBcubeUsingUSDT("2000000000").send({
+      from: accounts[6],
+      gasLimit: 6000000,
+    });
+    usdtPrice = new BN(await bcubePS.methods.fetchUSDTPrice().call());
+    ret = await bcubePS.methods.bcubeAllocationRegistry(accounts[6]).call();
+    allocation = new BN(ret.allocatedBcube, 10);
+    expect(
+      allocation.divide(new BN(10000000000000)).number.reverse().join("")
+    ).to.equal(
+      usdtPrice
+        .multiply(2000)
+        .multiply(1000)
+        .divide(55)
+        .multiply(new BN(10000000000))
+        .divide(new BN(10000000000000))
+        .add(new BN(shareOf6, 10))
+        .number.reverse()
+        .join("")
+    );
+  });
+  it("should test previous buy, checking team's wallet()", async function () {
+    team = await bcubePS.methods.wallet().call();
+    bal = await usdt.methods.balanceOf(team).call();
+    expect(parseInt(bal, 10)).to.be.above(116800000000);
   });
 });
 

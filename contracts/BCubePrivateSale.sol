@@ -79,15 +79,15 @@ contract BCubePrivateSale is Ownable, TimedCrowdsale, WhitelistCrowdsale {
         return (price * ethUSD) / 1e18;
     }
 
-    function calcRate() private view returns (uint256) {
-        if (netAllocatedBcube <= 2_500_000e18) {
-            return 25e10;
-        } else if (netAllocatedBcube <= 5_000_000e18) {
-            return 222222222222;
-        } else if (netAllocatedBcube <= 7_500_000e18) {
-            return 20e10;
+    function calcRate() private view returns (uint256, uint8) {
+        if (netAllocatedBcube < 2_500_000e18) {
+            return (25e10, 1);
+        } else if (netAllocatedBcube < 5_000_000e18) {
+            return (222222222222, 2);
+        } else if (netAllocatedBcube < 7_500_000e18) {
+            return (20e10, 3);
         } else if (netAllocatedBcube <= 10_000_000e18) {
-            return 181818181818;
+            return (181818181818, 4);
         }
     }
 
@@ -124,6 +124,14 @@ contract BCubePrivateSale is Ownable, TimedCrowdsale, WhitelistCrowdsale {
         uint256 bcubeAllocatedToUser;
         uint256 minDollarUnits;
         uint256 netUserDollarUnits;
+        uint256 rate_;
+        uint8 stage;
+        uint256 stageCap;
+        uint256 a1;
+        uint256 a2;
+        uint256 dollarUnitsUnused;
+        (rate_, stage) = calcRate();
+        stageCap = 2_500_000e18 * stage;
         if (netAllocatedBcube <= 2_500_000e18) {
             minDollarUnits = 1000_0000_0000;
         } else if (netAllocatedBcube <= 5_000_000e18) {
@@ -140,15 +148,28 @@ contract BCubePrivateSale is Ownable, TimedCrowdsale, WhitelistCrowdsale {
         netUserDollarUnits = bcubeAllocationRegistry[_msgSender()]
             .dollarUnitsPayed
             .add(dollarUnits);
-        bcubeAllocatedToUser = calcRate().mul(dollarUnits);
+        bcubeAllocatedToUser = rate_.mul(dollarUnits);
         finalAllocation = netAllocatedBcube.add(bcubeAllocatedToUser);
         require(finalAllocation <= HARD_CAP, "Hard cap exceeded");
-        netAllocatedBcube = finalAllocation;
         bcubeAllocationRegistry[_msgSender()]
             .dollarUnitsPayed = netUserDollarUnits;
-        bcubeAllocationRegistry[_msgSender()]
-            .allocatedBcube = bcubeAllocationRegistry[_msgSender()]
-            .allocatedBcube
-            .add(bcubeAllocatedToUser);
+        if (finalAllocation <= stageCap) {
+            netAllocatedBcube = finalAllocation;
+            bcubeAllocationRegistry[_msgSender()]
+                .allocatedBcube = bcubeAllocationRegistry[_msgSender()]
+                .allocatedBcube
+                .add(bcubeAllocatedToUser);
+        } else {
+            a1 = stageCap.sub(netAllocatedBcube);
+            dollarUnitsUnused = dollarUnits.sub(a1.div(rate_));
+            netAllocatedBcube = stageCap;
+            (rate_, stage) = calcRate();
+            a2 = dollarUnitsUnused.mul(rate_);
+            netAllocatedBcube = netAllocatedBcube.add(a2);
+            bcubeAllocationRegistry[_msgSender()]
+                .allocatedBcube = bcubeAllocationRegistry[_msgSender()]
+                .allocatedBcube
+                .add(a1.add(a2));
+        }
     }
 }
