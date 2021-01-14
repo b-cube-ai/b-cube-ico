@@ -28,7 +28,7 @@ contract Treasury is BCubePrivateSale {
     uint256 public bountyWithdrawn;
     uint256 public publicSaleShareWithdrawn;
 
-    uint256 public publicSaleStartTime;
+    uint256 public listingTime;
 
     IERC20 bcube;
 
@@ -46,15 +46,15 @@ contract Treasury is BCubePrivateSale {
     constructor(
         IERC20 _bcubeAddress,
         address payable _team,
-        uint256 _publicSaleStartTime
+        uint256 _listingTime
     ) public {
         bcube = IERC20(_bcubeAddress);
         team = _team;
-        publicSaleStartTime = _publicSaleStartTime;
+        listingTime = _listingTime;
     }
 
-    function setPublicSaleStartTime(uint256 _startTime) external onlyOwner {
-        publicSaleStartTime = _startTime;
+    function setListingTime(uint256 _startTime) external onlyOwner {
+        listingTime = _startTime;
     }
 
     function addAdvisor(address _newAdvisor, uint256 _netAllowance)
@@ -99,7 +99,7 @@ contract Treasury is BCubePrivateSale {
                 advisors[_msgSender()].increaseInAllowance
             );
         if (
-            now >= publicSaleStartTime + 24 weeks &&
+            now >= listingTime + 24 weeks &&
             finalAllowance <= advisors[_msgSender()].increaseInAllowance.mul(4)
         ) advisors[_msgSender()].currentAllowance = finalAllowance;
     }
@@ -111,7 +111,7 @@ contract Treasury is BCubePrivateSale {
         teamShareWithdrawn = finalTeamShareWithdrawn;
         bcube.safeTransfer(team, bcubeAmount);
         if (
-            now >= publicSaleStartTime + 24 weeks &&
+            now >= listingTime + 24 weeks &&
             teamAllowance.add(625_000e18) <= 5_000_000e18
         ) teamAllowance = teamAllowance.add(625_000e18);
     }
@@ -126,7 +126,7 @@ contract Treasury is BCubePrivateSale {
         devFundShareWithdrawn = finalDevFundShareWithdrawn;
         bcube.safeTransfer(team, bcubeAmount);
         if (
-            now >= publicSaleStartTime + 24 weeks &&
+            now >= listingTime + 24 weeks &&
             devFundAllowance.add(1_875_000e18) <= 7_500_000e18
         ) devFundAllowance = devFundAllowance.add(625_000e18);
     }
@@ -210,7 +210,7 @@ contract Treasury is BCubePrivateSale {
                 bcubeAllocationRegistry[_msgSender()].allocatedBcube.div(4)
             );
         if (
-            now >= publicSaleStartTime + 4 weeks &&
+            now >= listingTime + 4 weeks &&
             finalAllowance <=
             bcubeAllocationRegistry[_msgSender()].allocatedBcube
         )

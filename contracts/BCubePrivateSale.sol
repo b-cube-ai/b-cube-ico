@@ -142,12 +142,16 @@ contract BCubePrivateSale is Ownable, TimedCrowdsale, WhitelistCrowdsale {
             minDollarUnits = 100_0000_0000;
         }
         require(
-            minDollarUnits <= dollarUnits,
+            (minDollarUnits <= dollarUnits) && (dollarUnits <= 25000_0000_0000),
             "Contribution range for this round exceeded"
         );
         netUserDollarUnits = bcubeAllocationRegistry[_msgSender()]
             .dollarUnitsPayed
             .add(dollarUnits);
+        require(
+            netUserDollarUnits <= 25000_0000_0000,
+            "Contribution upper limit exceeded"
+        );
         bcubeAllocatedToUser = rate_.mul(dollarUnits);
         finalAllocation = netAllocatedBcube.add(bcubeAllocatedToUser);
         require(finalAllocation <= HARD_CAP, "Hard cap exceeded");
