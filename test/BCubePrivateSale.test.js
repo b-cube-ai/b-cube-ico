@@ -34,6 +34,8 @@ describe("BCUBE Private Sale tests with boundaries bought in ETH", async functio
     stage4Usdt;
   let eighteenZeroes = new BigNumber("1000000000000000000");
   before(async function () {
+    snapshot = await timeMachine.takeSnapshot();
+    snapshotId = snapshot["result"];
     currentTimestamp = Math.floor(Date.now() / 1000);
     openingTime = currentTimestamp + 2246400;
     closingTime = openingTime + 6912000;
@@ -66,11 +68,15 @@ describe("BCUBE Private Sale tests with boundaries bought in ETH", async functio
     await usdt.methods.issue("10000000000000").send({
       from: "0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828",
     });
-    for (let i = 3; i <= 19; i++) {
+    for (let i = 3; i <= 24; i++) {
       await bcubePS.methods.addWhitelisted(accounts[i]).send({
         from: accounts[0],
       });
     }
+  });
+
+  after(async function () {
+    await timeMachine.revertToSnapshot(snapshotId);
   });
 
   it("should revert when calling rate()", async function () {
@@ -110,10 +116,80 @@ describe("BCUBE Private Sale tests with boundaries bought in ETH", async functio
     );
   });
 
-  it("buys $BCUBE @ $0.04 calling buyBcubeUsingETH(), checking allocation", async function () {
-    snapshot = await timeMachine.takeSnapshot();
-    snapshotId = snapshot["result"];
+  it("should check if removeWhitelisted() works", async function () {
+    await bcubePS.methods.removeWhitelisted(accounts[2]).send({
+      from: accounts[0],
+    });
+    await truffleAssert.reverts(
+      bcubePS.methods.buyBcubeUsingETH().send({
+        from: accounts[2],
+        value: web3.utils.toWei("1", "ether"),
+      }),
+      "WhitelistedRole: caller does not have the Whitelisted role"
+    );
+  });
+
+  it("stage1 reverts for contribution range at $900 ETH", async function () {
     await timeMachine.advanceTimeAndBlock(2246400 + 10000);
+    ethPrice = new BigNumber(await bcubePS.methods.fetchETHPrice().call());
+    ethToBuyBcube = 90000000000 / ethPrice.toNumber();
+    await bcubePS.methods.addWhitelisted(accounts[2]).send({
+      from: accounts[0],
+    });
+    await truffleAssert.reverts(
+      bcubePS.methods.buyBcubeUsingETH().send({
+        from: accounts[2],
+        value: web3.utils.toWei(ethToBuyBcube.toString(), "ether"),
+      }),
+      "Contribution range for this round exceeded"
+    );
+  });
+
+  it("stage1 reverts for contribution range at $26k ETH", async function () {
+    ethPrice = new BigNumber(await bcubePS.methods.fetchETHPrice().call());
+    ethToBuyBcube = 2600000000000 / ethPrice.toNumber();
+    await truffleAssert.reverts(
+      bcubePS.methods.buyBcubeUsingETH().send({
+        from: accounts[2],
+        value: web3.utils.toWei(ethToBuyBcube.toString(), "ether"),
+      }),
+      "Contribution range for this round exceeded"
+    );
+  });
+
+  it("stage1 reverts for contribution range at $900 USDT", async function () {
+    await usdt.methods.approve(CONSTANTS.BPS_ADDRESS, "1000000000000").send({
+      from: accounts[2],
+    });
+    await usdt.methods.transfer(accounts[2], "31000000000").send({
+      from: "0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828",
+    });
+    usdtPrice = new BigNumber(await bcubePS.methods.fetchUSDTPrice().call());
+    usdtAmt = 90000000000 / usdtPrice;
+    finalUsdtAmt = Math.floor(usdtAmt * 1000000);
+    await truffleAssert.reverts(
+      bcubePS.methods.buyBcubeUsingUSDT(finalUsdtAmt.toString()).send({
+        from: accounts[2],
+        gasLimit: 6000000,
+      }),
+      "Contribution range for this round exceeded"
+    );
+  });
+
+  it("stage1 reverts for contribution range at $26k USDT", async function () {
+    usdtPrice = new BigNumber(await bcubePS.methods.fetchUSDTPrice().call());
+    usdtAmt = 2600000000000 / usdtPrice;
+    finalUsdtAmt = Math.floor(usdtAmt * 1000000);
+    await truffleAssert.reverts(
+      bcubePS.methods.buyBcubeUsingUSDT(finalUsdtAmt.toString()).send({
+        from: accounts[2],
+        gasLimit: 6000000,
+      }),
+      "Contribution range for this round exceeded"
+    );
+  });
+
+  it("buys $BCUBE @ $0.04 calling buyBcubeUsingETH(), checking allocation", async function () {
     ethPrice = new BigNumber(await bcubePS.methods.fetchETHPrice().call());
     ethToBuyBcube = 2500000000000 / ethPrice.toNumber();
     await bcubePS.methods.buyBcubeUsingETH().send({
@@ -138,7 +214,9 @@ describe("BCUBE Private Sale tests with boundaries bought in ETH", async functio
     team = await bcubePS.methods.wallet().call();
     bal = await web3.eth.getBalance(team);
     stageOneEth = 100 + ethToBuyBcube * 3;
-    expect(bal).to.equal(web3.utils.toWei(stageOneEth.toString(), "ether"));
+    expect(new BigNumber(bal).div(eighteenZeroes).toFixed()).to.equal(
+      stageOneEth.toString()
+    );
   });
 
   it("buys $BCUBE @ $0.04 calling buyBcubeUsingUSDT(), checking allocation", async function () {
@@ -165,7 +243,9 @@ describe("BCUBE Private Sale tests with boundaries bought in ETH", async functio
     team = await bcubePS.methods.wallet().call();
     bal = await usdt.methods.balanceOf(team).call();
     stage1Usdt = finalUsdtAmt;
-    expect(bal).to.equal(stage1Usdt.toString());
+    expect((bal / 1000000).toString()).to.equal(
+      (stage1Usdt / 1000000).toString()
+    );
   });
 
   it("boundary buys $BCUBE @ $0.04 calling buyBcubeUsingETH(), checking allocation", async function () {
@@ -189,7 +269,65 @@ describe("BCUBE Private Sale tests with boundaries bought in ETH", async functio
     team = await bcubePS.methods.wallet().call();
     bal = await web3.eth.getBalance(team);
     stageEndEth = stageOneEth + ethToBuyBcube;
-    expect(bal).to.equal(web3.utils.toWei(stageEndEth.toString(), "ether"));
+    expect(new BigNumber(bal).div(eighteenZeroes).toFixed()).to.equal(
+      stageEndEth.toString()
+    );
+  });
+
+  it("stage2 reverts for contribution range at $400 ETH", async function () {
+    ethPrice = new BigNumber(await bcubePS.methods.fetchETHPrice().call());
+    ethToBuyBcube = 40000000000 / ethPrice.toNumber();
+    await truffleAssert.reverts(
+      bcubePS.methods.buyBcubeUsingETH().send({
+        from: accounts[7],
+        value: web3.utils.toWei(ethToBuyBcube.toString(), "ether"),
+      }),
+      "Contribution range for this round exceeded"
+    );
+  });
+
+  it("stage2 reverts for contribution range at $26k ETH", async function () {
+    ethPrice = new BigNumber(await bcubePS.methods.fetchETHPrice().call());
+    ethToBuyBcube = 2600000000000 / ethPrice.toNumber();
+    await truffleAssert.reverts(
+      bcubePS.methods.buyBcubeUsingETH().send({
+        from: accounts[7],
+        value: web3.utils.toWei(ethToBuyBcube.toString(), "ether"),
+      }),
+      "Contribution range for this round exceeded"
+    );
+  });
+
+  it("stage2 reverts for contribution range at $400 USDT", async function () {
+    await usdt.methods.approve(CONSTANTS.BPS_ADDRESS, "1000000000000").send({
+      from: accounts[7],
+    });
+    await usdt.methods.transfer(accounts[7], "31000000000").send({
+      from: "0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828",
+    });
+    usdtPrice = new BigNumber(await bcubePS.methods.fetchUSDTPrice().call());
+    usdtAmt = 40000000000 / usdtPrice;
+    finalUsdtAmt = Math.floor(usdtAmt * 1000000);
+    await truffleAssert.reverts(
+      bcubePS.methods.buyBcubeUsingUSDT(finalUsdtAmt.toString()).send({
+        from: accounts[7],
+        gasLimit: 6000000,
+      }),
+      "Contribution range for this round exceeded"
+    );
+  });
+
+  it("stage2 reverts for contribution range at $26k USDT", async function () {
+    usdtPrice = new BigNumber(await bcubePS.methods.fetchUSDTPrice().call());
+    usdtAmt = 2600000000000 / usdtPrice;
+    finalUsdtAmt = Math.floor(usdtAmt * 1000000);
+    await truffleAssert.reverts(
+      bcubePS.methods.buyBcubeUsingUSDT(finalUsdtAmt.toString()).send({
+        from: accounts[7],
+        gasLimit: 6000000,
+      }),
+      "Contribution range for this round exceeded"
+    );
   });
 
   it("buys $BCUBE @ $0.045 calling buyBcubeUsingETH(), checking allocation", async function () {
@@ -217,7 +355,9 @@ describe("BCUBE Private Sale tests with boundaries bought in ETH", async functio
     team = await bcubePS.methods.wallet().call();
     bal = await web3.eth.getBalance(team);
     stage2Eth = stageEndEth + ethToBuyBcube * 3;
-    expect(bal).to.equal(web3.utils.toWei(stage2Eth.toString(), "ether"));
+    expect(new BigNumber(bal).div(eighteenZeroes).toFixed()).to.equal(
+      stage2Eth.toString()
+    );
   });
 
   it("buys $BCUBE @ $0.045 calling buyBcubeUsingUSDT(), checking allocation", async function () {
@@ -244,7 +384,9 @@ describe("BCUBE Private Sale tests with boundaries bought in ETH", async functio
     team = await bcubePS.methods.wallet().call();
     bal = await usdt.methods.balanceOf(team).call();
     stage2Usdt = stage1Usdt + finalUsdtAmt;
-    expect(bal).to.equal(stage2Usdt.toString());
+    expect((bal / 1000000).toString()).to.equal(
+      (stage2Usdt / 1000000).toString()
+    );
   });
 
   it("boundary buys $BCUBE @ $0.045 calling buyBcubeUsingETH(), checking allocation", async function () {
@@ -268,7 +410,65 @@ describe("BCUBE Private Sale tests with boundaries bought in ETH", async functio
     team = await bcubePS.methods.wallet().call();
     bal = await web3.eth.getBalance(team);
     stageEndEth = stage2Eth + ethToBuyBcube;
-    expect(bal).to.equal(web3.utils.toWei(stageEndEth.toString(), "ether"));
+    expect(new BigNumber(bal).div(eighteenZeroes).toFixed()).to.equal(
+      stageEndEth.toString()
+    );
+  });
+
+  it("stage3 reverts for contribution range at $200 ETH", async function () {
+    ethPrice = new BigNumber(await bcubePS.methods.fetchETHPrice().call());
+    ethToBuyBcube = 20000000000 / ethPrice.toNumber();
+    await truffleAssert.reverts(
+      bcubePS.methods.buyBcubeUsingETH().send({
+        from: accounts[12],
+        value: web3.utils.toWei(ethToBuyBcube.toString(), "ether"),
+      }),
+      "Contribution range for this round exceeded"
+    );
+  });
+
+  it("stage3 reverts for contribution range at $26k ETH", async function () {
+    ethPrice = new BigNumber(await bcubePS.methods.fetchETHPrice().call());
+    ethToBuyBcube = 2600000000000 / ethPrice.toNumber();
+    await truffleAssert.reverts(
+      bcubePS.methods.buyBcubeUsingETH().send({
+        from: accounts[12],
+        value: web3.utils.toWei(ethToBuyBcube.toString(), "ether"),
+      }),
+      "Contribution range for this round exceeded"
+    );
+  });
+
+  it("stage3 reverts for contribution range at $200 USDT", async function () {
+    await usdt.methods.approve(CONSTANTS.BPS_ADDRESS, "1000000000000").send({
+      from: accounts[12],
+    });
+    await usdt.methods.transfer(accounts[12], "31000000000").send({
+      from: "0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828",
+    });
+    usdtPrice = new BigNumber(await bcubePS.methods.fetchUSDTPrice().call());
+    usdtAmt = 20000000000 / usdtPrice;
+    finalUsdtAmt = Math.floor(usdtAmt * 1000000);
+    await truffleAssert.reverts(
+      bcubePS.methods.buyBcubeUsingUSDT(finalUsdtAmt.toString()).send({
+        from: accounts[12],
+        gasLimit: 6000000,
+      }),
+      "Contribution range for this round exceeded"
+    );
+  });
+
+  it("stage3 reverts for contribution range at $26k USDT", async function () {
+    usdtPrice = new BigNumber(await bcubePS.methods.fetchUSDTPrice().call());
+    usdtAmt = 2600000000000 / usdtPrice;
+    finalUsdtAmt = Math.floor(usdtAmt * 1000000);
+    await truffleAssert.reverts(
+      bcubePS.methods.buyBcubeUsingUSDT(finalUsdtAmt.toString()).send({
+        from: accounts[12],
+        gasLimit: 6000000,
+      }),
+      "Contribution range for this round exceeded"
+    );
   });
 
   it("buys $BCUBE @ $0.05 calling buyBcubeUsingETH(), checking allocation", async function () {
@@ -300,7 +500,9 @@ describe("BCUBE Private Sale tests with boundaries bought in ETH", async functio
     team = await bcubePS.methods.wallet().call();
     bal = await web3.eth.getBalance(team);
     stage3Eth = stageEndEth + ethToBuyBcube * 4;
-    expect(bal).to.equal(web3.utils.toWei(stage3Eth.toString(), "ether"));
+    expect(new BigNumber(bal).div(eighteenZeroes).toFixed()).to.equal(
+      stage3Eth.toString()
+    );
   });
 
   it("buys $BCUBE @ $0.05 calling buyBcubeUsingUSDT(), checking allocation", async function () {
@@ -327,7 +529,9 @@ describe("BCUBE Private Sale tests with boundaries bought in ETH", async functio
     team = await bcubePS.methods.wallet().call();
     bal = await usdt.methods.balanceOf(team).call();
     stage3Usdt = stage2Usdt + finalUsdtAmt;
-    expect(bal).to.equal(stage3Usdt.toString());
+    expect((bal / 1000000).toString()).to.equal(
+      (stage3Usdt / 1000000).toString()
+    );
   });
 
   it("boundary buys $BCUBE @ $0.05 calling buyBcubeUsingETH(), checking allocation", async function () {
@@ -351,7 +555,65 @@ describe("BCUBE Private Sale tests with boundaries bought in ETH", async functio
     team = await bcubePS.methods.wallet().call();
     bal = await web3.eth.getBalance(team);
     stageEndEth = stage3Eth + ethToBuyBcube;
-    expect(bal).to.equal(web3.utils.toWei(stageEndEth.toString(), "ether"));
+    expect(new BigNumber(bal).div(eighteenZeroes).toFixed()).to.equal(
+      stageEndEth.toString()
+    );
+  });
+
+  it("stage4 reverts for contribution range at $90 ETH", async function () {
+    ethPrice = new BigNumber(await bcubePS.methods.fetchETHPrice().call());
+    ethToBuyBcube = 9000000000 / ethPrice.toNumber();
+    await truffleAssert.reverts(
+      bcubePS.methods.buyBcubeUsingETH().send({
+        from: accounts[18],
+        value: web3.utils.toWei(ethToBuyBcube.toString(), "ether"),
+      }),
+      "Contribution range for this round exceeded"
+    );
+  });
+
+  it("stage4 reverts for contribution range at $26k ETH", async function () {
+    ethPrice = new BigNumber(await bcubePS.methods.fetchETHPrice().call());
+    ethToBuyBcube = 2600000000000 / ethPrice.toNumber();
+    await truffleAssert.reverts(
+      bcubePS.methods.buyBcubeUsingETH().send({
+        from: accounts[18],
+        value: web3.utils.toWei(ethToBuyBcube.toString(), "ether"),
+      }),
+      "Contribution range for this round exceeded"
+    );
+  });
+
+  it("stage4 reverts for contribution range at $90 USDT", async function () {
+    await usdt.methods.approve(CONSTANTS.BPS_ADDRESS, "1000000000000").send({
+      from: accounts[18],
+    });
+    await usdt.methods.transfer(accounts[18], "31000000000").send({
+      from: "0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828",
+    });
+    usdtPrice = new BigNumber(await bcubePS.methods.fetchUSDTPrice().call());
+    usdtAmt = 9000000000 / usdtPrice;
+    finalUsdtAmt = Math.floor(usdtAmt * 1000000);
+    await truffleAssert.reverts(
+      bcubePS.methods.buyBcubeUsingUSDT(finalUsdtAmt.toString()).send({
+        from: accounts[18],
+        gasLimit: 6000000,
+      }),
+      "Contribution range for this round exceeded"
+    );
+  });
+
+  it("stage4 reverts for contribution range at $26k USDT", async function () {
+    usdtPrice = new BigNumber(await bcubePS.methods.fetchUSDTPrice().call());
+    usdtAmt = 2600000000000 / usdtPrice;
+    finalUsdtAmt = Math.floor(usdtAmt * 1000000);
+    await truffleAssert.reverts(
+      bcubePS.methods.buyBcubeUsingUSDT(finalUsdtAmt.toString()).send({
+        from: accounts[18],
+        gasLimit: 6000000,
+      }),
+      "Contribution range for this round exceeded"
+    );
   });
 
   it("buys $BCUBE @ $0.055 calling buyBcubeUsingETH(), checking allocation", async function () {
@@ -371,7 +633,9 @@ describe("BCUBE Private Sale tests with boundaries bought in ETH", async functio
     team = await bcubePS.methods.wallet().call();
     bal = await web3.eth.getBalance(team);
     stage4Eth = stageEndEth + ethToBuyBcube;
-    expect(bal).to.equal(web3.utils.toWei(stage4Eth.toString(), "ether"));
+    expect(new BigNumber(bal).div(eighteenZeroes).toFixed()).to.equal(
+      stage4Eth.toString()
+    );
   });
 
   it("buys $BCUBE @ $0.055 calling buyBcubeUsingUSDT(), checking allocation", async function () {
@@ -398,7 +662,9 @@ describe("BCUBE Private Sale tests with boundaries bought in ETH", async functio
     team = await bcubePS.methods.wallet().call();
     bal = await usdt.methods.balanceOf(team).call();
     stage4Usdt = stage3Usdt + finalUsdtAmt;
-    expect(bal).to.equal(stage4Usdt.toString());
+    expect((bal / 1000000).toString()).to.equal(
+      (stage4Usdt / 1000000).toString()
+    );
   });
 });
 
@@ -413,17 +679,14 @@ describe("BCUBE Private Sale tests with boundaries bought in USDT", function () 
     usdt,
     ethToBuyBcube,
     finalUsdtAmt,
-    stageOneEth,
-    stage2Eth,
-    stage3Eth,
-    stage4Eth,
-    stageEndEth,
     stage1Usdt,
     stage2Usdt,
     stage3Usdt,
     stage4Usdt;
   let eighteenZeroes = new BigNumber("1000000000000000000");
   before(async function () {
+    let snapshot = await timeMachine.takeSnapshot();
+    snapshotId = snapshot["result"];
     currentTimestamp = Math.floor(Date.now() / 1000);
     openingTime = currentTimestamp + 2246400;
     closingTime = openingTime + 6912000;
@@ -464,8 +727,6 @@ describe("BCUBE Private Sale tests with boundaries bought in USDT", function () 
   });
 
   it("buys $BCUBE @ $0.04 calling buyBcubeUsingUSDT(), checking allocation", async function () {
-    let snapshot = await timeMachine.takeSnapshot();
-    snapshotId = snapshot["result"];
     await timeMachine.advanceTimeAndBlock(2246400 + 10000);
     ethPrice = new BigNumber(await bcubePS.methods.fetchETHPrice().call());
     ethToBuyBcube = 2500000000000 / ethPrice.toNumber();
@@ -513,7 +774,9 @@ describe("BCUBE Private Sale tests with boundaries bought in USDT", function () 
     team = await bcubePS.methods.wallet().call();
     bal = await usdt.methods.balanceOf(team).call();
     stage1Usdt = finalUsdtAmt;
-    expect(bal).to.equal(stage1Usdt.toString());
+    expect((bal / 1000000).toString()).to.equal(
+      (stage1Usdt / 1000000).toString()
+    );
   });
 
   it("buys $BCUBE @ $0.045 calling buyBcubeUsingUSDT(), checking allocation", async function () {
@@ -562,7 +825,9 @@ describe("BCUBE Private Sale tests with boundaries bought in USDT", function () 
     team = await bcubePS.methods.wallet().call();
     bal = await usdt.methods.balanceOf(team).call();
     stage2Usdt = stage1Usdt + finalUsdtAmt;
-    expect(bal).to.equal(stage2Usdt.toString());
+    expect((bal / 1000000).toString()).to.equal(
+      (stage2Usdt / 1000000).toString()
+    );
   });
 
   it("buys $BCUBE @ $0.05 calling buyBcubeUsingUSDT(), checking allocation", async function () {
@@ -616,7 +881,9 @@ describe("BCUBE Private Sale tests with boundaries bought in USDT", function () 
     team = await bcubePS.methods.wallet().call();
     bal = await usdt.methods.balanceOf(team).call();
     stage3Usdt = stage2Usdt + finalUsdtAmt;
-    expect(bal).to.equal(stage3Usdt.toString());
+    expect((bal / 1000000).toString()).to.equal(
+      (stage3Usdt / 1000000).toString()
+    );
   });
 
   it("buys $BCUBE @ $0.055 calling buyBcubeUsingETH() after boundary USDT buy, checking allocation", async function () {
@@ -657,6 +924,8 @@ describe("BCUBE Private Sale tests with boundaries bought in USDT", function () 
     team = await bcubePS.methods.wallet().call();
     bal = await usdt.methods.balanceOf(team).call();
     stage4Usdt = stage3Usdt + finalUsdtAmt;
-    expect(bal).to.equal(stage4Usdt.toString());
+    expect((bal / 1000000).toString()).to.equal(
+      (stage4Usdt / 1000000).toString()
+    );
   });
 });

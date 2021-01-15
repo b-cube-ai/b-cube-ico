@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.5.17;
 
-import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/SafeCast.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -11,7 +10,7 @@ import "@openzeppelin/contracts/crowdsale/validation/TimedCrowdsale.sol";
 import "@openzeppelin/contracts/crowdsale/validation/WhitelistCrowdsale.sol";
 import "@chainlink/contracts/src/v0.5/interfaces/AggregatorV3Interface.sol";
 
-contract BCubePrivateSale is Ownable, TimedCrowdsale, WhitelistCrowdsale {
+contract BCubePrivateSale is TimedCrowdsale, WhitelistCrowdsale {
     using SafeMath for uint256;
     using SafeCast for uint256;
     using SafeERC20 for IERC20;
@@ -32,9 +31,22 @@ contract BCubePrivateSale is Ownable, TimedCrowdsale, WhitelistCrowdsale {
     IERC20 public usdt;
 
     event LogEtherReceived(address indexed sender, uint256 value);
+    event LogBcubeBuyUsingEth(
+        address indexed buyer,
+        uint256 incomingWei,
+        uint256 allocation
+    );
+    event LogBcubeBuyUsingUsdt(
+        address indexed buyer,
+        uint256 incomingUsdtUnits,
+        uint256 allocation
+    );
+    event LogETHPriceFeedChange(address indexed newChainlinkETHPriceFeed);
+    event LogUSDTPriceFeedChange(address indexed newChainlinkUSDTPriceFeed);
+    event LogUSDTInstanceChange(address indexed newUsdtContract);
 
     modifier tokensRemaining() {
-        require(netAllocatedBcube <= HARD_CAP, "All tokens allocated");
+        require(netAllocatedBcube < HARD_CAP, "All tokens allocated");
         _;
     }
 
@@ -91,6 +103,37 @@ contract BCubePrivateSale is Ownable, TimedCrowdsale, WhitelistCrowdsale {
         }
     }
 
+    function setETHPriceFeed(address _newChainlinkETHPriceFeed)
+        external
+        onlyWhitelistAdmin
+    {
+        priceFeedETH = AggregatorV3Interface(_newChainlinkETHPriceFeed);
+        emit LogETHPriceFeedChange(_newChainlinkETHPriceFeed);
+    }
+
+    function setUSDTPriceFeed(address _newChainlinkUSDTPriceFeed)
+        external
+        onlyWhitelistAdmin
+    {
+        priceFeedUSDT = AggregatorV3Interface(_newChainlinkUSDTPriceFeed);
+        emit LogUSDTPriceFeedChange(_newChainlinkUSDTPriceFeed);
+    }
+
+    function setUSDTInstance(address _newUsdtContract)
+        external
+        onlyWhitelistAdmin
+    {
+        usdt = IERC20(_newUsdtContract);
+        emit LogUSDTInstanceChange(_newUsdtContract);
+    }
+
+    function extendClosingTime(uint256 _newClosingTime)
+        external
+        onlyWhitelistAdmin
+    {
+        _extendTime(_newClosingTime);
+    }
+
     function buyBcubeUsingETH()
         external
         payable
@@ -98,28 +141,31 @@ contract BCubePrivateSale is Ownable, TimedCrowdsale, WhitelistCrowdsale {
         onlyWhileOpen
         tokensRemaining
     {
+        uint256 allocation;
         uint256 ethPrice = uint256(fetchETHPrice());
         uint256 dollarUnits = ethPrice.mul(msg.value).div(1e18);
         super._preValidatePurchase(_msgSender(), msg.value);
-        executeAllocation(dollarUnits);
+        allocation = executeAllocation(dollarUnits);
         _forwardFunds();
+        emit LogBcubeBuyUsingEth(_msgSender(), msg.value, allocation);
     }
 
     function buyBcubeUsingUSDT(uint256 incomingUsdt)
         external
-        payable
         onlyWhitelisted
         onlyWhileOpen
         tokensRemaining
     {
+        uint256 allocation;
         uint256 usdtPrice = uint256(fetchUSDTPrice());
         uint256 dollarUnits = usdtPrice.mul(incomingUsdt).div(1e6);
         super._preValidatePurchase(_msgSender(), incomingUsdt);
-        executeAllocation(dollarUnits);
+        allocation = executeAllocation(dollarUnits);
         usdt.safeTransferFrom(_msgSender(), wallet(), incomingUsdt);
+        emit LogBcubeBuyUsingUsdt(_msgSender(), incomingUsdt, allocation);
     }
 
-    function executeAllocation(uint256 dollarUnits) private {
+    function executeAllocation(uint256 dollarUnits) private returns (uint256) {
         uint256 finalAllocation;
         uint256 bcubeAllocatedToUser;
         uint256 minDollarUnits;
@@ -163,17 +209,21 @@ contract BCubePrivateSale is Ownable, TimedCrowdsale, WhitelistCrowdsale {
                 .allocatedBcube = bcubeAllocationRegistry[_msgSender()]
                 .allocatedBcube
                 .add(bcubeAllocatedToUser);
+            return bcubeAllocatedToUser;
         } else {
+            uint256 total;
             a1 = stageCap.sub(netAllocatedBcube);
             dollarUnitsUnused = dollarUnits.sub(a1.div(rate_));
             netAllocatedBcube = stageCap;
             (rate_, stage) = calcRate();
             a2 = dollarUnitsUnused.mul(rate_);
             netAllocatedBcube = netAllocatedBcube.add(a2);
+            total = a1.add(a2);
             bcubeAllocationRegistry[_msgSender()]
                 .allocatedBcube = bcubeAllocationRegistry[_msgSender()]
                 .allocatedBcube
-                .add(a1.add(a2));
+                .add(total);
+            return total;
         }
     }
 }

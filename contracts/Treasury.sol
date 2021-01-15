@@ -53,13 +53,13 @@ contract Treasury is BCubePrivateSale {
         listingTime = _listingTime;
     }
 
-    function setListingTime(uint256 _startTime) external onlyOwner {
+    function setListingTime(uint256 _startTime) external onlyWhitelistAdmin {
         listingTime = _startTime;
     }
 
     function addAdvisor(address _newAdvisor, uint256 _netAllowance)
         external
-        onlyOwner
+        onlyWhitelistAdmin
     {
         require(_newAdvisor != address(0), "Invalid advisor address");
         advisors[_newAdvisor].increaseInAllowance = _netAllowance.div(4);
@@ -67,13 +67,13 @@ contract Treasury is BCubePrivateSale {
 
     function setAdvisorAllowance(address _advisor, uint256 _newNetAllowance)
         external
-        onlyOwner
+        onlyWhitelistAdmin
     {
         require(advisors[_advisor].increaseInAllowance > 0, "Invalid advisor");
         advisors[_advisor].increaseInAllowance = _newNetAllowance.div(4);
     }
 
-    function removeAdvisor(address _advisor) external onlyOwner {
+    function removeAdvisor(address _advisor) external onlyWhitelistAdmin {
         require(advisors[_advisor].increaseInAllowance > 0, "Invalid advisor");
         delete advisors[_advisor];
     }
