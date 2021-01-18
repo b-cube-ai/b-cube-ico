@@ -44,11 +44,28 @@ contract Treasury is BCubePrivateSale {
     }
 
     constructor(
-        IERC20 _bcubeAddress,
+        address payable wallet_,
+        IERC20 token_,
+        uint256 openingTime_,
+        uint256 closingTime_,
+        address _chainlinkETHPriceFeed,
+        address _chainlinkUSDTPriceFeed,
+        address _usdtContract,
         address payable _team,
         uint256 _listingTime
-    ) public {
-        bcube = IERC20(_bcubeAddress);
+    )
+        public
+        BCubePrivateSale(
+            wallet_,
+            token_,
+            openingTime_,
+            closingTime_,
+            _chainlinkETHPriceFeed,
+            _chainlinkUSDTPriceFeed,
+            _usdtContract
+        )
+    {
+        bcube = IERC20(token_);
         team = _team;
         listingTime = _listingTime;
     }

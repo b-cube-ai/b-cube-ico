@@ -44,6 +44,10 @@ contract BCubePrivateSale is TimedCrowdsale, WhitelistCrowdsale {
     event LogETHPriceFeedChange(address indexed newChainlinkETHPriceFeed);
     event LogUSDTPriceFeedChange(address indexed newChainlinkUSDTPriceFeed);
     event LogUSDTInstanceChange(address indexed newUsdtContract);
+    event LogPrivateSaleTimeExtension(
+        uint256 previousClosingTime,
+        uint256 newClosingTime
+    );
 
     modifier tokensRemaining() {
         require(netAllocatedBcube < HARD_CAP, "All tokens allocated");
@@ -132,6 +136,7 @@ contract BCubePrivateSale is TimedCrowdsale, WhitelistCrowdsale {
         onlyWhitelistAdmin
     {
         _extendTime(_newClosingTime);
+        emit LogPrivateSaleTimeExtension(closingTime(), _newClosingTime);
     }
 
     function buyBcubeUsingETH()

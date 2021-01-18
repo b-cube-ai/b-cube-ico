@@ -12,9 +12,6 @@ const timeMachine = require("ganache-time-traveler");
 
 describe("BCUBE Private Sale tests with boundaries bought in ETH", async function () {
   this.timeout(3600000);
-  function sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
   let snapshot,
     snapshotId,
     openingTime,
@@ -652,6 +649,10 @@ describe("BCUBE Private Sale tests with boundaries bought in ETH", async functio
       from: accounts[19],
       gasLimit: 6000000,
     });
+    nAB = new BigNumber(await bcubePS.methods.netAllocatedBcube().call())
+      .div(eighteenZeroes)
+      .toFixed();
+    console.log("NAB", nAB);
     ret = await bcubePS.methods.bcubeAllocationRegistry(accounts[19]).call();
     usdtDollars = new BigNumber(25000);
     expect(
@@ -666,6 +667,113 @@ describe("BCUBE Private Sale tests with boundaries bought in ETH", async functio
       (stage4Usdt / 1000000).toString()
     );
   });
+
+  it("reverts for Hard cap exceeded", async function () {
+    ethPrice = new BigNumber(await bcubePS.methods.fetchETHPrice().call());
+    ethToBuyBcube = 2500000000000 / ethPrice.toNumber();
+    await bcubePS.methods.buyBcubeUsingETH().send({
+      from: accounts[20],
+      value: web3.utils.toWei(ethToBuyBcube.toString(), "ether"),
+    });
+    await bcubePS.methods.buyBcubeUsingETH().send({
+      from: accounts[21],
+      value: web3.utils.toWei(ethToBuyBcube.toString(), "ether"),
+    });
+    await bcubePS.methods.buyBcubeUsingETH().send({
+      from: accounts[22],
+      value: web3.utils.toWei(ethToBuyBcube.toString(), "ether"),
+    });
+    nAB = new BigNumber(await bcubePS.methods.netAllocatedBcube().call())
+      .div(eighteenZeroes)
+      .toFixed();
+    console.log("NAB", nAB);
+    ethToBuyBcube6k = 600000000000 / ethPrice.toNumber();
+    await truffleAssert.reverts(
+      bcubePS.methods.buyBcubeUsingETH().send({
+        from: accounts[23],
+        value: web3.utils.toWei(ethToBuyBcube6k.toString(), "ether"),
+      }),
+      "Hard cap exceeded"
+    );
+  });
+
+  it("reverts for Contribution upper limit exceeded, for ETH", async function () {
+    ethPrice = new BigNumber(await bcubePS.methods.fetchETHPrice().call());
+    ethToBuyBcube = 300000000000 / ethPrice.toNumber();
+    await bcubePS.methods.buyBcubeUsingETH().send({
+      from: accounts[23],
+      value: web3.utils.toWei(ethToBuyBcube.toString(), "ether"),
+    });
+    nAB = new BigNumber(await bcubePS.methods.netAllocatedBcube().call())
+      .div(eighteenZeroes)
+      .toFixed();
+    console.log("NAB", nAB);
+    ethToBuyBcube23k = 2300000000000 / ethPrice.toNumber();
+    await truffleAssert.reverts(
+      bcubePS.methods.buyBcubeUsingETH().send({
+        from: accounts[23],
+        value: web3.utils.toWei(ethToBuyBcube23k.toString(), "ether"),
+      }),
+      "Contribution upper limit exceeded"
+    );
+  });
+
+  it("reverts for Contribution upper limit exceeded, for USDT", async function () {
+    await usdt.methods.approve(CONSTANTS.BPS_ADDRESS, "1000000000000").send({
+      from: accounts[23],
+    });
+    await usdt.methods.transfer(accounts[23], "31000000000").send({
+      from: "0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828",
+    });
+    usdtPrice = new BigNumber(await bcubePS.methods.fetchUSDTPrice().call());
+    usdtAmt = 2300000000000 / usdtPrice;
+    finalUsdtAmt = Math.floor(usdtAmt * 1000000);
+    await truffleAssert.reverts(
+      bcubePS.methods.buyBcubeUsingUSDT(finalUsdtAmt.toString()).send({
+        from: accounts[23],
+        gasLimit: 6000000,
+      }),
+      "Contribution upper limit exceeded"
+    );
+  });
+
+  it("reverts for All tokens allocaated or Hard cap exceeded, for ETH at 99.99% BCUBE allocation", async function () {
+    ethPrice = new BigNumber(await bcubePS.methods.fetchETHPrice().call());
+    ethToBuyBcube = 200000000000 / ethPrice.toNumber();
+    await bcubePS.methods.buyBcubeUsingETH().send({
+      from: accounts[23],
+      value: web3.utils.toWei(ethToBuyBcube.toString(), "ether"),
+    });
+    ethToBuyBcube1k = 100000000000 / ethPrice.toNumber();
+    nAB = new BigNumber(await bcubePS.methods.netAllocatedBcube().call())
+      .div(eighteenZeroes)
+      .toFixed();
+    console.log("NAB", nAB);
+    await truffleAssert.reverts(
+      bcubePS.methods.buyBcubeUsingETH().send({
+        from: accounts[23],
+        value: web3.utils.toWei(ethToBuyBcube1k.toString(), "ether"),
+      }),
+      "Hard cap exceeded"
+    );
+  });
+
+  it("reverts for All tokens allocaated or Hard cap exceeded, for USDT at 99.99% BCUBE allocation", async function () {
+    usdtPrice = new BigNumber(await bcubePS.methods.fetchUSDTPrice().call());
+    usdtAmt = 100000000000 / usdtPrice;
+    finalUsdtAmt = Math.floor(usdtAmt * 1000000);
+    nAB = new BigNumber(await bcubePS.methods.netAllocatedBcube().call())
+      .div(eighteenZeroes)
+      .toFixed();
+    console.log("NAB", nAB);
+    await truffleAssert.reverts(
+      bcubePS.methods.buyBcubeUsingUSDT(finalUsdtAmt.toString()).send({
+        from: accounts[23],
+        gasLimit: 6000000,
+      }),
+      "Hard cap exceeded"
+    );
+  });
 });
 
 describe("BCUBE Private Sale tests with boundaries bought in USDT", function () {
@@ -673,7 +781,8 @@ describe("BCUBE Private Sale tests with boundaries bought in USDT", function () 
   function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
-  let openingTime,
+  let bcubeDeployed,
+    openingTime,
     closingTime,
     currentTimestamp,
     usdt,
@@ -726,7 +835,103 @@ describe("BCUBE Private Sale tests with boundaries bought in USDT", function () 
     }
   });
 
+  it("checks if deployer is WhitelistAdmin", async function () {
+    flag = await bcubePS.methods.isWhitelistAdmin(accounts[0]).call();
+    expect(flag).to.equal(true);
+  });
+
+  it("checks if accounts[1] is wallet() i.e. team's address", async function () {
+    teamAddress = await bcubePS.methods.wallet().call();
+    expect(teamAddress).to.equal(accounts[1]);
+  });
+
+  it("checks if token() is deployed BCUBE address", async function () {
+    bcubeAddress = await bcubePS.methods.token().call();
+    expect(bcubeAddress).to.equal(bcubeDeployed.address);
+  });
+
+  it("reverts for non-whitelistAdmin calling setETHPriceFeed()", async function () {
+    await truffleAssert.reverts(
+      bcubePS.methods
+        .setETHPriceFeed("0x0481bDA39e00bCC24ac276903BcDF3893D8A97ca")
+        .send({
+          from: accounts[1],
+        }),
+      "WhitelistAdminRole: caller does not have the WhitelistAdmin role"
+    );
+  });
+
+  it("reverts for non-whitelistAdmin calling setUSDTPriceFeed()", async function () {
+    await truffleAssert.reverts(
+      bcubePS.methods
+        .setUSDTPriceFeed("0x0481bDA39e00bCC24ac276903BcDF3893D8A97ca")
+        .send({
+          from: accounts[2],
+        }),
+      "WhitelistAdminRole: caller does not have the WhitelistAdmin role"
+    );
+  });
+
+  it("reverts for non-whitelistAdmin calling setUSDTInstance()", async function () {
+    await truffleAssert.reverts(
+      bcubePS.methods
+        .setUSDTInstance("0x0481bDA39e00bCC24ac276903BcDF3893D8A97ca")
+        .send({
+          from: accounts[3],
+        }),
+      "WhitelistAdminRole: caller does not have the WhitelistAdmin role"
+    );
+  });
+
+  it("reverts for non-whitelistAdmin calling extendClosingTime()", async function () {
+    await truffleAssert.reverts(
+      bcubePS.methods.extendClosingTime("2246400").send({
+        from: accounts[4],
+      }),
+      "WhitelistAdminRole: caller does not have the WhitelistAdmin role"
+    );
+  });
+
+  it("changes USDT instance in contract", async function () {
+    await bcubePS.methods
+      .setUSDTInstance("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48")
+      .send({
+        from: accounts[0],
+      });
+    newInstance = await bcubePS.methods.usdt().call();
+    expect(newInstance).to.equal("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48");
+  });
+
+  it("changes ETH price feed in contract (ignore-worthy test)", async function () {
+    await bcubePS.methods
+      .setETHPriceFeed("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48")
+      .send({
+        from: accounts[0],
+      });
+    await bcubePS.methods
+      .setETHPriceFeed("0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419")
+      .send({
+        from: accounts[0],
+      });
+  });
+
+  it("changes USDT price feed in contract (ignore-worthy test)", async function () {
+    await bcubePS.methods
+      .setUSDTPriceFeed("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48")
+      .send({
+        from: accounts[0],
+      });
+    await bcubePS.methods
+      .setUSDTPriceFeed("0xEe9F2375b4bdF6387aa8265dD4FB8F16512A1d46")
+      .send({
+        from: accounts[0],
+      });
+  });
+
   it("buys $BCUBE @ $0.04 calling buyBcubeUsingUSDT(), checking allocation", async function () {
+    await bcubePS.methods.setUSDTInstance(CONSTANTS.TETHER_ADDRESS).send({
+      from: accounts[0],
+    });
     await timeMachine.advanceTimeAndBlock(2246400 + 10000);
     ethPrice = new BigNumber(await bcubePS.methods.fetchETHPrice().call());
     ethToBuyBcube = 2500000000000 / ethPrice.toNumber();
@@ -777,6 +982,15 @@ describe("BCUBE Private Sale tests with boundaries bought in USDT", function () 
     expect((bal / 1000000).toString()).to.equal(
       (stage1Usdt / 1000000).toString()
     );
+  });
+
+  it("extends private sale closing time", async function () {
+    newClosingTime = closingTime + 6912000;
+    await bcubePS.methods.extendClosingTime(newClosingTime).send({
+      from: accounts[0],
+    });
+    nCTFromContract = await bcubePS.methods.closingTime().call();
+    expect(nCTFromContract).to.equal(newClosingTime.toString());
   });
 
   it("buys $BCUBE @ $0.045 calling buyBcubeUsingUSDT(), checking allocation", async function () {
