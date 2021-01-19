@@ -27,13 +27,13 @@ describe("Setting the stage for Treasury's tests", async function () {
     openingTime = currentTimestamp + 2246400;
     closingTime = openingTime + 6912000;
     accounts = await web3.eth.getAccounts();
-    bcubeDeployed = await BCUBEToken.new(
-      "b-cube.ai Token",
-      "BCUBE",
-      "18",
-      "1000000000000000000000",
-      "50000000000000000000000000"
-    );
+    // bcubeDeployed = await BCUBEToken.new(
+    //   "b-cube.ai Token",
+    //   "BCUBE",
+    //   "18",
+    //   "1000000000000000000000",
+    //   "50000000000000000000000000"
+    // );
     // bcubePSDeployed = await BCubePrivateSale.new(
     //   accounts[1],
     //   bcubeDeployed.address,
@@ -43,23 +43,21 @@ describe("Setting the stage for Treasury's tests", async function () {
     //   "0xEe9F2375b4bdF6387aa8265dD4FB8F16512A1d46",
     //   "0xdAC17F958D2ee523a2206206994597C13D831ec7"
     // );
-    treasuryDeployed = await Treasury.new(
-      accounts[1],
-      bcubeDeployed.address,
-      openingTime,
-      closingTime,
-      "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
-      "0xEe9F2375b4bdF6387aa8265dD4FB8F16512A1d46",
-      "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-      accounts[1],
-      closingTime + 6912000
-    );
-    console.log("T_D", treasuryDeployed);
-    CONSTANTS.TREASURY_ADDRESS = treasuryDeployed.address;
-    CONSTANTS.TOKEN_ADDRESS = bcubeDeployed.address;
-    // CONSTANTS.BPS_ADDRESS = bcubePSDeployed.address;
+    // treasuryDeployed = await Treasury.new(
+    //   accounts[1],
+    //   bcubeDeployed.address,
+    //   openingTime,
+    //   closingTime,
+    //   "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
+    //   "0xEe9F2375b4bdF6387aa8265dD4FB8F16512A1d46",
+    //   "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    //   closingTime + 6912000
+    // );
+    // CONSTANTS.TREASURY_ADDRESS = treasuryDeployed.address;
+    // CONSTANTS.TOKEN_ADDRESS = bcubeDeployed.address;
+    // CONSTANTS.BPS_ADDRESS = "0xba86f59035cc97c426c26cf94e835f6e54ca890a";
     bcube = new web3.eth.Contract(CONSTANTS.TOKEN_ABI, CONSTANTS.TOKEN_ADDRESS);
-    // bcubePS = new web3.eth.Contract(CONSTANTS.BPS_ABI, CONSTANTS.BPS_ADDRESS);
+    bcubePS = new web3.eth.Contract(CONSTANTS.BPS_ABI, CONSTANTS.BPS_ADDRESS);
     usdt = new web3.eth.Contract(
       CONSTANTS.TETHER_ABI,
       CONSTANTS.TETHER_ADDRESS

@@ -18,7 +18,7 @@ describe("Treasury tests", async function () {
     closingTime,
     currentTimestamp,
     usdt,
-    finalUsdtAmt;
+    treasury;
   let eighteenZeroes = new BigNumber("1000000000000000000");
   before(async function () {
     snapshot = await timeMachine.takeSnapshot();
@@ -29,6 +29,7 @@ describe("Treasury tests", async function () {
     accounts = await web3.eth.getAccounts();
     bcube = new web3.eth.Contract(CONSTANTS.TOKEN_ABI, CONSTANTS.TOKEN_ADDRESS);
     bcubePS = new web3.eth.Contract(CONSTANTS.BPS_ABI, CONSTANTS.BPS_ADDRESS);
+    console.log("T_A", CONSTANTS.TREASURY_ADDRESS);
     treasury = new web3.eth.Contract(
       CONSTANTS.TREASURY_ABI,
       CONSTANTS.TREASURY_ADDRESS
@@ -37,18 +38,43 @@ describe("Treasury tests", async function () {
       CONSTANTS.TETHER_ABI,
       CONSTANTS.TETHER_ADDRESS
     );
-    nAB = new BigNumber(await bcubePS.methods.netAllocatedBcube().call())
-      .div(eighteenZeroes)
-      .toFixed();
-    console.log("NAB", nAB);
+    await bcube.methods
+      .mint(CONSTANTS.TREASURY_ADDRESS, "50000000000000000000000000")
+      .send({
+        from: accounts[0],
+      });
+    console.log(
+      "TR_B",
+      await bcube.methods.balanceOf(CONSTANTS.TREASURY_ADDRESS).call()
+    );
   });
 
   after(async function () {
     await timeMachine.revertToSnapshot(snapshotId);
   });
 
-  it("should revert when calling rate()", async function () {
-    ret = await treasury.methods.bcubeAllocationRegistry(accounts[2]).call();
-    console.log("RET", ret);
+  it("allows team to withdraw reserves share i.e. 7m BCUBE", async function () {
+    // console.log("TEAM_TreasuryTest", accounts);
+    console.log(
+      "RET",
+      (await treasury.methods.bcubeAllocationRegistry(accounts[2]).call())
+        .allocatedBcube
+    );
+    // await treasury.methods
+    //   .reservesShareWithdraw("7000000000000000000000000")
+    //   .send({
+    //     from: accounts[1],
+    //   });
+    await treasury.methods
+      .communityShareWithdraw("2500000000000000000000000")
+      .send({
+        from: accounts[1],
+      });
+    teamBal = await bcube.methods.balanceOf(accounts[1]).call();
+    console.log(
+      "TR_B",
+      await bcube.methods.balanceOf(CONSTANTS.TREASURY_ADDRESS).call()
+    );
+    expect(teamBal).to.equal("7000000000000000000000000");
   });
 });

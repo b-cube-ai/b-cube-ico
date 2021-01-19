@@ -17,7 +17,7 @@ contract Treasury is BCubePrivateSale {
     }
 
     address payable public team;
-    mapping(address => Advisor) advisors;
+    mapping(address => Advisor) public advisors;
 
     uint256 public teamShareWithdrawn;
     uint256 public teamAllowance;
@@ -30,9 +30,32 @@ contract Treasury is BCubePrivateSale {
 
     uint256 public listingTime;
 
-    IERC20 bcube;
-
     event LogEtherReceived(address indexed sender, uint256 value);
+    event LogListingTimeChange(uint256 prevListingTime, uint256 newListingTime);
+    event LogAdvisorAddition(
+        address indexed newAdvisor,
+        uint256 newNetAllowance
+    );
+    event LogAdvisorAllowanceChange(
+        address indexed advisor,
+        uint256 prevNetAllowance,
+        uint256 newNetAllowance
+    );
+    event LogAdvisorRemoval(address indexed removedAdvisor);
+    event LogAdvisorShareWithdrawn(
+        address indexed advisor,
+        uint256 bcubeAmountWithdrawn
+    );
+    event LogTeamShareWithdrawn(uint256 bcubeAmountWithdrawn);
+    event LogDevFundShareWithdrawn(uint256 bcubeAmountWithdrawn);
+    event LogReservesShareWithdrawn(uint256 bcubeAmountWithdrawn);
+    event LogCommunityShareWithdrawn(uint256 bcubeAmountWithdrawn);
+    event LogBountyShareWithdrawn(uint256 bcubeAmountWithdrawn);
+    event LogPublicSaleShareWithdrawn(uint256 bcubeAmountWithdrawn);
+    event LogPrivateSaleShareWithdrawn(
+        address indexed participant,
+        uint256 bcubeAmountWithdrawn
+    );
 
     modifier onlyTeam() {
         require(_msgSender() == team, "Only team can call");
@@ -51,7 +74,6 @@ contract Treasury is BCubePrivateSale {
         address _chainlinkETHPriceFeed,
         address _chainlinkUSDTPriceFeed,
         address _usdtContract,
-        address payable _team,
         uint256 _listingTime
     )
         public
@@ -65,13 +87,14 @@ contract Treasury is BCubePrivateSale {
             _usdtContract
         )
     {
-        bcube = IERC20(token_);
-        team = _team;
+        team = wallet_;
         listingTime = _listingTime;
     }
 
     function setListingTime(uint256 _startTime) external onlyWhitelistAdmin {
+        uint256 prevListingTime = listingTime;
         listingTime = _startTime;
+        emit LogListingTimeChange(prevListingTime, listingTime);
     }
 
     function addAdvisor(address _newAdvisor, uint256 _netAllowance)
@@ -80,19 +103,28 @@ contract Treasury is BCubePrivateSale {
     {
         require(_newAdvisor != address(0), "Invalid advisor address");
         advisors[_newAdvisor].increaseInAllowance = _netAllowance.div(4);
+        emit LogAdvisorAddition(_newAdvisor, _netAllowance);
     }
 
     function setAdvisorAllowance(address _advisor, uint256 _newNetAllowance)
         external
         onlyWhitelistAdmin
     {
+        uint256 prevNetAllowance;
         require(advisors[_advisor].increaseInAllowance > 0, "Invalid advisor");
+        prevNetAllowance = advisors[_advisor].increaseInAllowance.mul(4);
         advisors[_advisor].increaseInAllowance = _newNetAllowance.div(4);
+        emit LogAdvisorAllowanceChange(
+            _advisor,
+            prevNetAllowance,
+            _newNetAllowance
+        );
     }
 
     function removeAdvisor(address _advisor) external onlyWhitelistAdmin {
         require(advisors[_advisor].increaseInAllowance > 0, "Invalid advisor");
         delete advisors[_advisor];
+        emit LogAdvisorRemoval(_advisor);
     }
 
     function advisorShareWithdraw(uint256 bcubeAmount) external {
@@ -110,7 +142,7 @@ contract Treasury is BCubePrivateSale {
             "Out of advisor share"
         );
         advisors[_msgSender()].shareWithdrawn = finalAdvisorShareWithdrawn;
-        bcube.safeTransfer(_msgSender(), bcubeAmount);
+        token().safeTransfer(_msgSender(), bcubeAmount);
         uint256 finalAllowance =
             advisors[_msgSender()].currentAllowance.add(
                 advisors[_msgSender()].increaseInAllowance
@@ -119,6 +151,7 @@ contract Treasury is BCubePrivateSale {
             now >= listingTime + 24 weeks &&
             finalAllowance <= advisors[_msgSender()].increaseInAllowance.mul(4)
         ) advisors[_msgSender()].currentAllowance = finalAllowance;
+        emit LogAdvisorShareWithdrawn(_msgSender(), bcubeAmount);
     }
 
     function teamShareWithdraw(uint256 bcubeAmount) external onlyTeam {
@@ -126,11 +159,12 @@ contract Treasury is BCubePrivateSale {
         finalTeamShareWithdrawn = teamShareWithdrawn.add(bcubeAmount);
         require(finalTeamShareWithdrawn <= teamAllowance, "Out of team share");
         teamShareWithdrawn = finalTeamShareWithdrawn;
-        bcube.safeTransfer(team, bcubeAmount);
+        token().safeTransfer(team, bcubeAmount);
         if (
             now >= listingTime + 24 weeks &&
             teamAllowance.add(625_000e18) <= 5_000_000e18
         ) teamAllowance = teamAllowance.add(625_000e18);
+        emit LogTeamShareWithdrawn(bcubeAmount);
     }
 
     function devFundShareWithdraw(uint256 bcubeAmount) external onlyTeam {
@@ -141,11 +175,12 @@ contract Treasury is BCubePrivateSale {
             "Out of dev fund share"
         );
         devFundShareWithdrawn = finalDevFundShareWithdrawn;
-        bcube.safeTransfer(team, bcubeAmount);
+        token().safeTransfer(team, bcubeAmount);
         if (
             now >= listingTime + 24 weeks &&
             devFundAllowance.add(1_875_000e18) <= 7_500_000e18
         ) devFundAllowance = devFundAllowance.add(625_000e18);
+        emit LogDevFundShareWithdrawn(bcubeAmount);
     }
 
     function reservesShareWithdraw(uint256 bcubeAmount) external onlyTeam {
@@ -156,6 +191,7 @@ contract Treasury is BCubePrivateSale {
             "Out of reserves share",
             0
         );
+        emit LogReservesShareWithdrawn(bcubeAmount);
     }
 
     function communityShareWithdraw(uint256 bcubeAmount) external onlyTeam {
@@ -166,6 +202,7 @@ contract Treasury is BCubePrivateSale {
             "Out of community share",
             1
         );
+        emit LogCommunityShareWithdrawn(bcubeAmount);
     }
 
     function bountyShareWithdraw(uint256 bcubeAmount) external onlyTeam {
@@ -176,6 +213,7 @@ contract Treasury is BCubePrivateSale {
             "Out of bounty share",
             2
         );
+        emit LogBountyShareWithdrawn(bcubeAmount);
     }
 
     function publicSaleShareWithdraw(uint256 bcubeAmount) external onlyTeam {
@@ -186,6 +224,7 @@ contract Treasury is BCubePrivateSale {
             "Out of publicSale share",
             3
         );
+        emit LogPublicSaleShareWithdrawn(bcubeAmount);
     }
 
     function shareWithdraw(
@@ -202,13 +241,13 @@ contract Treasury is BCubePrivateSale {
         else if (flag == 1) communityShareWithdrawn = finalShareWithdrawn;
         else if (flag == 2) bountyWithdrawn = finalShareWithdrawn;
         else if (flag == 3) publicSaleShareWithdrawn = finalShareWithdrawn;
-        bcube.safeTransfer(team, bcubeAmount);
+        token().safeTransfer(team, bcubeAmount);
     }
 
     function privateSaleShareWithdraw(uint256 bcubeAmount) external {
         require(
             bcubeAllocationRegistry[_msgSender()].allocatedBcube > 0,
-            "0 BCUBE allocated"
+            "!privateSaleParticipant || 0 BCUBE allocated"
         );
         uint256 finalPSSWithdrawn;
         finalPSSWithdrawn = bcubeAllocationRegistry[_msgSender()]
@@ -221,7 +260,7 @@ contract Treasury is BCubePrivateSale {
         );
         bcubeAllocationRegistry[_msgSender()]
             .shareWithdrawn = finalPSSWithdrawn;
-        bcube.safeTransfer(_msgSender(), bcubeAmount);
+        token().safeTransfer(_msgSender(), bcubeAmount);
         uint256 finalAllowance =
             bcubeAllocationRegistry[_msgSender()].currentAllowance.add(
                 bcubeAllocationRegistry[_msgSender()].allocatedBcube.div(4)
@@ -233,5 +272,6 @@ contract Treasury is BCubePrivateSale {
         )
             bcubeAllocationRegistry[_msgSender()]
                 .currentAllowance = finalAllowance;
+        emit LogPrivateSaleShareWithdrawn(_msgSender(), bcubeAmount);
     }
 }
