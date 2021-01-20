@@ -1,5 +1,5 @@
 const BCUBEToken = artifacts.require("BCUBEToken");
-const CONSTANTS = require("../constants");
+const CONSTANTS = require("./constants");
 
 module.exports = function (deployer) {
   deployer.deploy(
@@ -8,8 +8,7 @@ module.exports = function (deployer) {
     "BCUBE",
     "18",
     "0",
-    "50000000000000000000000000"
-    ,
+    "50000000000000000000000000",
     { gas: 6720000, overwrite: false }
   );
 };

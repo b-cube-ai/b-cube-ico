@@ -62,6 +62,11 @@ contract Treasury is BCubePrivateSale {
         _;
     }
 
+    modifier onlyAfterListing() {
+        require(now >= listingTime, "Only callable after listing");
+        _;
+    }
+
     function() external payable {
         emit LogEtherReceived(_msgSender(), msg.value);
     }
@@ -92,6 +97,7 @@ contract Treasury is BCubePrivateSale {
     }
 
     function setListingTime(uint256 _startTime) external onlyWhitelistAdmin {
+        require(now < listingTime, "listingTime unchangable after listing");
         uint256 prevListingTime = listingTime;
         listingTime = _startTime;
         emit LogListingTimeChange(prevListingTime, listingTime);
@@ -127,10 +133,22 @@ contract Treasury is BCubePrivateSale {
         emit LogAdvisorRemoval(_advisor);
     }
 
-    function advisorShareWithdraw(uint256 bcubeAmount) external {
+    function advisorShareWithdraw(uint256 bcubeAmount)
+        external
+        onlyAfterListing
+    {
+        uint256 allowance;
+        require(advisors[_msgSender()].increaseInAllowance > 0, "!advisor");
+        uint256 increase = advisors[_msgSender()].increaseInAllowance;
+        if (now >= listingTime + 104 weeks) allowance = increase * 4;
+        else if (now >= listingTime + 78 weeks) allowance = increase * 3;
+        else if (now >= listingTime + 52 weeks) allowance = increase * 2;
+        else if (now >= listingTime + 26 weeks) allowance = increase;
+        if (allowance != advisors[_msgSender()].currentAllowance)
+            advisors[_msgSender()].currentAllowance = allowance;
         require(
             advisors[_msgSender()].currentAllowance >= bcubeAmount,
-            "!advisor || insufficient allowance"
+            "insufficient allowance"
         );
         uint256 finalAdvisorShareWithdrawn;
         finalAdvisorShareWithdrawn = advisors[_msgSender()].shareWithdrawn.add(
@@ -143,31 +161,20 @@ contract Treasury is BCubePrivateSale {
         );
         advisors[_msgSender()].shareWithdrawn = finalAdvisorShareWithdrawn;
         token().safeTransfer(_msgSender(), bcubeAmount);
-        uint256 finalAllowance =
-            advisors[_msgSender()].currentAllowance.add(
-                advisors[_msgSender()].increaseInAllowance
-            );
-        if (
-            now >= listingTime + 24 weeks &&
-            finalAllowance <= advisors[_msgSender()].increaseInAllowance.mul(4)
-        ) advisors[_msgSender()].currentAllowance = finalAllowance;
         emit LogAdvisorShareWithdrawn(_msgSender(), bcubeAmount);
     }
 
-    function teamShareWithdraw(uint256 bcubeAmount) external onlyTeam {
-        uint256 finalTeamShareWithdrawn;
-        finalTeamShareWithdrawn = teamShareWithdrawn.add(bcubeAmount);
-        require(finalTeamShareWithdrawn <= teamAllowance, "Out of team share");
-        teamShareWithdrawn = finalTeamShareWithdrawn;
-        token().safeTransfer(team, bcubeAmount);
-        if (
-            now >= listingTime + 24 weeks &&
-            teamAllowance.add(625_000e18) <= 5_000_000e18
-        ) teamAllowance = teamAllowance.add(625_000e18);
-        emit LogTeamShareWithdrawn(bcubeAmount);
-    }
-
-    function devFundShareWithdraw(uint256 bcubeAmount) external onlyTeam {
+    function devFundShareWithdraw(uint256 bcubeAmount)
+        external
+        onlyTeam
+        onlyAfterListing
+    {
+        uint256 allowance;
+        if (now >= listingTime + 104 weeks) allowance = 1_875_000e18 * 4;
+        else if (now >= listingTime + 78 weeks) allowance = 1_875_000e18 * 3;
+        else if (now >= listingTime + 52 weeks) allowance = 1_875_000e18 * 2;
+        else if (now >= listingTime + 26 weeks) allowance = 1_875_000e18;
+        if (allowance != devFundAllowance) devFundAllowance = allowance;
         uint256 finalDevFundShareWithdrawn;
         finalDevFundShareWithdrawn = devFundShareWithdrawn.add(bcubeAmount);
         require(
@@ -176,14 +183,37 @@ contract Treasury is BCubePrivateSale {
         );
         devFundShareWithdrawn = finalDevFundShareWithdrawn;
         token().safeTransfer(team, bcubeAmount);
-        if (
-            now >= listingTime + 24 weeks &&
-            devFundAllowance.add(1_875_000e18) <= 7_500_000e18
-        ) devFundAllowance = devFundAllowance.add(625_000e18);
         emit LogDevFundShareWithdrawn(bcubeAmount);
     }
 
-    function reservesShareWithdraw(uint256 bcubeAmount) external onlyTeam {
+    function teamShareWithdraw(uint256 bcubeAmount)
+        external
+        onlyTeam
+        onlyAfterListing
+    {
+        uint256 allowance;
+        if (now >= listingTime + 208 weeks) allowance = 625_000e18 * 8;
+        else if (now >= listingTime + 182 weeks) allowance = 625_000e18 * 7;
+        else if (now >= listingTime + 156 weeks) allowance = 625_000e18 * 6;
+        else if (now >= listingTime + 130 weeks) allowance = 625_000e18 * 5;
+        else if (now >= listingTime + 104 weeks) allowance = 625_000e18 * 4;
+        else if (now >= listingTime + 78 weeks) allowance = 625_000e18 * 3;
+        else if (now >= listingTime + 52 weeks) allowance = 625_000e18 * 2;
+        else if (now >= listingTime + 26 weeks) allowance = 625_000e18;
+        if (allowance != teamAllowance) teamAllowance = allowance;
+        uint256 finalTeamShareWithdrawn;
+        finalTeamShareWithdrawn = teamShareWithdrawn.add(bcubeAmount);
+        require(finalTeamShareWithdrawn <= teamAllowance, "Out of team share");
+        teamShareWithdrawn = finalTeamShareWithdrawn;
+        token().safeTransfer(team, bcubeAmount);
+        emit LogTeamShareWithdrawn(bcubeAmount);
+    }
+
+    function reservesShareWithdraw(uint256 bcubeAmount)
+        external
+        onlyTeam
+        onlyAfterListing
+    {
         shareWithdraw(
             bcubeAmount,
             reservesWithdrawn,
@@ -244,11 +274,23 @@ contract Treasury is BCubePrivateSale {
         token().safeTransfer(team, bcubeAmount);
     }
 
-    function privateSaleShareWithdraw(uint256 bcubeAmount) external {
+    function privateSaleShareWithdraw(uint256 bcubeAmount)
+        external
+        onlyAfterListing
+    {
         require(
             bcubeAllocationRegistry[_msgSender()].allocatedBcube > 0,
             "!privateSaleParticipant || 0 BCUBE allocated"
         );
+        uint256 allowance;
+        uint256 increase =
+            bcubeAllocationRegistry[_msgSender()].allocatedBcube.div(4);
+        if (now >= listingTime + 120 days) allowance = increase * 4;
+        else if (now >= listingTime + 90 days) allowance = increase * 3;
+        else if (now >= listingTime + 60 days) allowance = increase * 2;
+        else if (now >= listingTime + 30 days) allowance = increase;
+        if (allowance != bcubeAllocationRegistry[_msgSender()].currentAllowance)
+            bcubeAllocationRegistry[_msgSender()].currentAllowance = allowance;
         uint256 finalPSSWithdrawn;
         finalPSSWithdrawn = bcubeAllocationRegistry[_msgSender()]
             .shareWithdrawn
@@ -261,17 +303,6 @@ contract Treasury is BCubePrivateSale {
         bcubeAllocationRegistry[_msgSender()]
             .shareWithdrawn = finalPSSWithdrawn;
         token().safeTransfer(_msgSender(), bcubeAmount);
-        uint256 finalAllowance =
-            bcubeAllocationRegistry[_msgSender()].currentAllowance.add(
-                bcubeAllocationRegistry[_msgSender()].allocatedBcube.div(4)
-            );
-        if (
-            now >= listingTime + 4 weeks &&
-            finalAllowance <=
-            bcubeAllocationRegistry[_msgSender()].allocatedBcube
-        )
-            bcubeAllocationRegistry[_msgSender()]
-                .currentAllowance = finalAllowance;
         emit LogPrivateSaleShareWithdrawn(_msgSender(), bcubeAmount);
     }
 }
