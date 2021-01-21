@@ -6,10 +6,9 @@ let TOKEN_ADDRESS, BPS_ADDRESS, TREASURY_ADDRESS;
 const TOKEN_ABI = BCUBEToken.abi;
 const BPS_ABI = BCubePrivateSale.abi;
 const TREASURY_ABI = Treasury.abi;
-TOKEN_ADDRESS = BCUBEToken.networks[4447].address;
-// console.log("BCUBE_CONSTANTS", TOKEN_ADDRESS);
-BPS_ADDRESS = BCubePrivateSale.networks[4447].address;
-TREASURY_ADDRESS = Treasury.networks[4447].address;
+// TOKEN_ADDRESS = BCUBEToken.networks[4447].address;
+// BPS_ADDRESS = BCubePrivateSale.networks[4447].address;
+// TREASURY_ADDRESS = Treasury.networks[4447].address;
 
 const TETHER_ABI = [
   {

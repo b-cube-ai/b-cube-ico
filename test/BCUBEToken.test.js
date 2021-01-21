@@ -4,7 +4,6 @@ const Web3 = require("web3");
 const provider = new Web3.providers.HttpProvider("http://localhost:8545");
 web3 = new Web3(provider);
 const BCUBEToken = artifacts.require("BCUBEToken");
-// const moment = require("moment");
 const truffleAssert = require("truffle-assertions");
 const BN = require("big-number");
 
@@ -20,7 +19,6 @@ describe("BCUBE token properties/functions", function () {
       "50000000000000000000000000"
     );
     CONSTANTS.TOKEN_ADDRESS = bcubeDeployed.address;
-    // CONSTANTS.BCUBE_ADDRESS = "0x0fef71ba53077ee0a67424fa7560c84a4bb618af";
     bcube = new web3.eth.Contract(CONSTANTS.TOKEN_ABI, CONSTANTS.TOKEN_ADDRESS);
   });
 

@@ -5,7 +5,6 @@ const provider = new Web3.providers.HttpProvider("http://localhost:8545");
 web3 = new Web3(provider);
 const BCUBEToken = artifacts.require("BCUBEToken");
 const BCubePrivateSale = artifacts.require("BCubePrivateSale");
-// const moment = require("moment");
 const truffleAssert = require("truffle-assertions");
 const BigNumber = require("bignumber.js");
 const timeMachine = require("ganache-time-traveler");
@@ -55,7 +54,6 @@ describe("BCUBE Private Sale tests with boundaries bought in ETH", async functio
     );
     CONSTANTS.TOKEN_ADDRESS = bcubeDeployed.address;
     CONSTANTS.BPS_ADDRESS = bcubePSDeployed.address;
-    // CONSTANTS.BCUBE_ADDRESS = "0x0fef71ba53077ee0a67424fa7560c84a4bb618af";
     bcube = new web3.eth.Contract(CONSTANTS.TOKEN_ABI, CONSTANTS.TOKEN_ADDRESS);
     bcubePS = new web3.eth.Contract(CONSTANTS.BPS_ABI, CONSTANTS.BPS_ADDRESS);
     usdt = new web3.eth.Contract(
@@ -833,6 +831,10 @@ describe("BCUBE Private Sale tests with boundaries bought in USDT", function () 
         from: accounts[0],
       });
     }
+  });
+
+  after(async function () {
+    await timeMachine.revertToSnapshot(snapshotId);
   });
 
   it("checks if deployer is WhitelistAdmin", async function () {

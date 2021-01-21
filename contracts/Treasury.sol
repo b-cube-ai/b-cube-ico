@@ -16,7 +16,6 @@ contract Treasury is BCubePrivateSale {
         uint256 shareWithdrawn;
     }
 
-    address payable public team;
     mapping(address => Advisor) public advisors;
 
     uint256 public teamShareWithdrawn;
@@ -58,7 +57,7 @@ contract Treasury is BCubePrivateSale {
     );
 
     modifier onlyTeam() {
-        require(_msgSender() == team, "Only team can call");
+        require(_msgSender() == wallet(), "Only team can call");
         _;
     }
 
@@ -92,7 +91,6 @@ contract Treasury is BCubePrivateSale {
             _usdtContract
         )
     {
-        team = wallet_;
         listingTime = _listingTime;
     }
 
@@ -146,10 +144,6 @@ contract Treasury is BCubePrivateSale {
         else if (now >= listingTime + 26 weeks) allowance = increase;
         if (allowance != advisors[_msgSender()].currentAllowance)
             advisors[_msgSender()].currentAllowance = allowance;
-        require(
-            advisors[_msgSender()].currentAllowance >= bcubeAmount,
-            "insufficient allowance"
-        );
         uint256 finalAdvisorShareWithdrawn;
         finalAdvisorShareWithdrawn = advisors[_msgSender()].shareWithdrawn.add(
             bcubeAmount
@@ -182,7 +176,7 @@ contract Treasury is BCubePrivateSale {
             "Out of dev fund share"
         );
         devFundShareWithdrawn = finalDevFundShareWithdrawn;
-        token().safeTransfer(team, bcubeAmount);
+        token().safeTransfer(wallet(), bcubeAmount);
         emit LogDevFundShareWithdrawn(bcubeAmount);
     }
 
@@ -205,7 +199,7 @@ contract Treasury is BCubePrivateSale {
         finalTeamShareWithdrawn = teamShareWithdrawn.add(bcubeAmount);
         require(finalTeamShareWithdrawn <= teamAllowance, "Out of team share");
         teamShareWithdrawn = finalTeamShareWithdrawn;
-        token().safeTransfer(team, bcubeAmount);
+        token().safeTransfer(wallet(), bcubeAmount);
         emit LogTeamShareWithdrawn(bcubeAmount);
     }
 
@@ -271,7 +265,7 @@ contract Treasury is BCubePrivateSale {
         else if (flag == 1) communityShareWithdrawn = finalShareWithdrawn;
         else if (flag == 2) bountyWithdrawn = finalShareWithdrawn;
         else if (flag == 3) publicSaleShareWithdrawn = finalShareWithdrawn;
-        token().safeTransfer(team, bcubeAmount);
+        token().safeTransfer(wallet(), bcubeAmount);
     }
 
     function privateSaleShareWithdraw(uint256 bcubeAmount)
