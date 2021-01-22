@@ -3,7 +3,7 @@
 ## Smart Contract Summary
 
 1. BCUBEToken: ERC-20 token contract for the $BCUBE token
-2. BCUBEPrivateSale: contract that performs the private crowdsale of BCUBE tokens to private investors, accepting payments in $ETH and $USDT, using Chainlink's price feed to offer $BCUBE tokens to investors at different prices in 4 different rounds/stages
+2. BCUBEPrivateSale: contract that performs the private crowdsale of BCUBE tokens to private investors, accepting payments in $ETH and $USDT, using Chainlink's price feed to offer $BCUBE tokens to investors at different prices in 4 different rounds/stages. These inherit from OpenZeppelin's Crowdsale contracts.
 3. Treasury: contract in which the total supply of BCUBE tokens i.e. 50m is supposed to be minted after the private sale. It is responsible for allowing private sale participants to claim their allocated share of tokens, and allowing the team and advisors to claim their share of allocated BCUBE tokens _in a vested manner_.
 
 ## Private Sale Details
@@ -29,7 +29,7 @@ Following details have been implemented in Treasury.sol
 - 7.5m (15% dev fund) 25%/ 6 Months
 - 2.5m (5% Advisors) - 25% / 6 Months - team adds/removed advisors and decides what % each advisor gets
 - 7m (14% Reserves)
-- 2.5m (5% Community)
+- 2.5m (5% Community / Contributors&Supporters )
 - 0.5m (1% Bounty)
 
 ## General Details
@@ -43,11 +43,12 @@ Following details have been implemented in Treasury.sol
 ## Timeline for the entire sale (approx.)
 
 1. 1st 80 days: private sale
-2. Next 3 months: public sale
-3. Token listing on CEXes/DEXes. Trading for general public starts.
-4. Vesting of allocated BCUBE tokens in private sale, starts from listing date. Tokens are locked until this date.
-5. First slot of BCUBE tokens of private sale investors are unlocked after 1 month of listing
-6. First slot of team, advisors are unlocked after 6 months of listing
+2. BCUBE tokens minted in the Treasury
+3. Next 3 months: public sale
+4. Token listing on CEXes/DEXes. Trading for general public starts.
+5. Vesting of allocated BCUBE tokens in private sale, starts from listing date. Tokens are locked until this date.
+6. First slot of BCUBE tokens of private sale investors are unlocked after 1 month of listing
+7. First slot of team, advisors are unlocked after 6 months of listing
 
 ## Running the tests
 
@@ -61,3 +62,9 @@ In tests of BCUBE Private Sale, approx. 23 tests are seen failing by very narrow
 Total tests: 186,
 Passing: 163,
 Failing: 23
+
+## Math
+
+For user buying BCUBE on stage boundaries or when netAllocatedBcube exceeds stageCap
+
+![math](./math.jpg)

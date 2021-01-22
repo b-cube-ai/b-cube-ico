@@ -33,6 +33,7 @@ describe("BCUBE Private Sale tests with boundaries bought in ETH", async functio
     snapshot = await timeMachine.takeSnapshot();
     snapshotId = snapshot["result"];
     currentTimestamp = Math.floor(Date.now() / 1000);
+    // 26 days from today
     openingTime = currentTimestamp + 2246400;
     closingTime = openingTime + 6912000;
     accounts = await web3.eth.getAccounts();
@@ -795,6 +796,7 @@ describe("BCUBE Private Sale tests with boundaries bought in USDT", function () 
     let snapshot = await timeMachine.takeSnapshot();
     snapshotId = snapshot["result"];
     currentTimestamp = Math.floor(Date.now() / 1000);
+    // 26 days from today
     openingTime = currentTimestamp + 2246400;
     closingTime = openingTime + 6912000;
     accounts = await web3.eth.getAccounts();

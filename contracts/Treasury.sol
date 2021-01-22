@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: Unlicense
 pragma solidity 0.5.17;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -6,10 +6,21 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "./BCubePrivateSale.sol";
 
+/**
+ * @title BCUBE Treasury
+ * @notice Contract in which 50m BCUBE will be minted after private sale,
+ * and distributed to stakeholders, in vested manner to whomever applicable
+ * @author Smit Rajput @ b-cube.ai
+ **/
+
 contract Treasury is BCubePrivateSale {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
+    /// @param shareWithdrawn amount of allocated BCUBEs withdrawn
+    /// @param currentAllowance amount of BCUBE that can be claimed from treasury increases 25% per 6 months (vesting),
+    /// currentAllowance tracks this increasing allowance
+    /// @param increaseInAllowance 25% of net allocation. By which currentAllowance increases per 6 months
     struct Advisor {
         uint256 increaseInAllowance;
         uint256 currentAllowance;
@@ -18,15 +29,21 @@ contract Treasury is BCubePrivateSale {
 
     mapping(address => Advisor) public advisors;
 
+    /// @notice team, devFund shares, like advisors' share are also vested, hence have their allowance
+    /// trackers similar to advisors', along with BCUBEs withdrawn tracker
     uint256 public teamShareWithdrawn;
     uint256 public teamAllowance;
     uint256 public devFundShareWithdrawn;
     uint256 public devFundAllowance;
+
+    /// @notice reserves, community, bounty, publicSale share of BCUBEs are not vested and only have their
+    /// BCUBEs withdrawn trackers
     uint256 public reservesWithdrawn;
     uint256 public communityShareWithdrawn;
     uint256 public bountyWithdrawn;
     uint256 public publicSaleShareWithdrawn;
 
+    /// @notice timestamp at which BCUBE will be listed on CEXes/DEXes
     uint256 public listingTime;
 
     event LogEtherReceived(address indexed sender, uint256 value);
@@ -56,6 +73,7 @@ contract Treasury is BCubePrivateSale {
         uint256 bcubeAmountWithdrawn
     );
 
+    /// @dev wallet() is team's address, declared in the parent Crowdsale contract
     modifier onlyTeam() {
         require(_msgSender() == wallet(), "Only team can call");
         _;
@@ -70,6 +88,7 @@ contract Treasury is BCubePrivateSale {
         emit LogEtherReceived(_msgSender(), msg.value);
     }
 
+    /// @param wallet_ team's address which controls all BCUBEs except private sale share
     constructor(
         address payable wallet_,
         IERC20 token_,
@@ -94,6 +113,8 @@ contract Treasury is BCubePrivateSale {
         listingTime = _listingTime;
     }
 
+    /// @dev WhitelistAdmin is the deployer
+    /// @dev allows deployer to change listingTime, before current listingTime
     function setListingTime(uint256 _startTime) external onlyWhitelistAdmin {
         require(now < listingTime, "listingTime unchangable after listing");
         uint256 prevListingTime = listingTime;
@@ -110,6 +131,7 @@ contract Treasury is BCubePrivateSale {
         emit LogAdvisorAddition(_newAdvisor, _netAllowance);
     }
 
+    /// @dev allows deployer to change net allowance of existing advisor
     function setAdvisorAllowance(address _advisor, uint256 _newNetAllowance)
         external
         onlyWhitelistAdmin
@@ -131,6 +153,8 @@ contract Treasury is BCubePrivateSale {
         emit LogAdvisorRemoval(_advisor);
     }
 
+    /// @dev allows existing advisors to withdraw their share of BCUBEs,
+    /// 25% per 6 months, after listingTime
     function advisorShareWithdraw(uint256 bcubeAmount)
         external
         onlyAfterListing
@@ -158,6 +182,8 @@ contract Treasury is BCubePrivateSale {
         emit LogAdvisorShareWithdrawn(_msgSender(), bcubeAmount);
     }
 
+    /// @dev allows team to withdraw devFund share of BCUBEs,
+    /// 25% of 7.5m, per 6 months, after listingTime
     function devFundShareWithdraw(uint256 bcubeAmount)
         external
         onlyTeam
@@ -180,6 +206,8 @@ contract Treasury is BCubePrivateSale {
         emit LogDevFundShareWithdrawn(bcubeAmount);
     }
 
+    /// @dev allows team to withdraw their share of BCUBEs,
+    /// 12.5% of 5m, per 6 months, after listingTime
     function teamShareWithdraw(uint256 bcubeAmount)
         external
         onlyTeam
@@ -203,6 +231,7 @@ contract Treasury is BCubePrivateSale {
         emit LogTeamShareWithdrawn(bcubeAmount);
     }
 
+    /// @dev allows team to withdraw reserves share of BCUBEs i.e. 7m after listingTime
     function reservesShareWithdraw(uint256 bcubeAmount)
         external
         onlyTeam
@@ -218,6 +247,7 @@ contract Treasury is BCubePrivateSale {
         emit LogReservesShareWithdrawn(bcubeAmount);
     }
 
+    /// @dev allows team to withdraw community share of BCUBEs i.e. 2.5m
     function communityShareWithdraw(uint256 bcubeAmount) external onlyTeam {
         shareWithdraw(
             bcubeAmount,
@@ -229,6 +259,7 @@ contract Treasury is BCubePrivateSale {
         emit LogCommunityShareWithdrawn(bcubeAmount);
     }
 
+    /// @dev allows team to withdraw bounty share of BCUBEs i.e. 0.5m
     function bountyShareWithdraw(uint256 bcubeAmount) external onlyTeam {
         shareWithdraw(
             bcubeAmount,
@@ -240,6 +271,7 @@ contract Treasury is BCubePrivateSale {
         emit LogBountyShareWithdrawn(bcubeAmount);
     }
 
+    /// @dev allows team to withdraw publicSale share of BCUBEs i.e. 25m - (netAllocatedBcube in private sale)
     function publicSaleShareWithdraw(uint256 bcubeAmount) external onlyTeam {
         shareWithdraw(
             bcubeAmount,
@@ -251,6 +283,9 @@ contract Treasury is BCubePrivateSale {
         emit LogPublicSaleShareWithdrawn(bcubeAmount);
     }
 
+    /// @dev common function which handles withdrawals for the immediate above 4 functions
+    /// it checks if the amount being withdrawn is below the allocated share, then updates the
+    /// appropriate tracker and performs the transfer
     function shareWithdraw(
         uint256 bcubeAmount,
         uint256 specificShareWithdrawn,
@@ -268,6 +303,8 @@ contract Treasury is BCubePrivateSale {
         token().safeTransfer(wallet(), bcubeAmount);
     }
 
+    /// @dev allows private sale participants to withdraw their allocated share of
+    /// BCUBEs, 25% per 30 days, after listingTime
     function privateSaleShareWithdraw(uint256 bcubeAmount)
         external
         onlyAfterListing

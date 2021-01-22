@@ -23,6 +23,7 @@ describe("Treasury tests without private sale", async function () {
     snapshot = await timeMachine.takeSnapshot();
     snapshotId = snapshot["result"];
     currentTimestamp = Math.floor(Date.now() / 1000);
+    // 26 days from today
     openingTime = currentTimestamp + 2246400;
     closingTime = openingTime + 6912000;
     listingTime = closingTime + 6912000;
@@ -843,6 +844,7 @@ describe("Treasury tests with private sale", async function () {
     snapshot = await timeMachine.takeSnapshot();
     snapshotId = snapshot["result"];
     currentTimestamp = Math.floor(Date.now() / 1000);
+    // 26 days from today
     openingTime = currentTimestamp + 2246400;
     closingTime = openingTime + 6912000;
     listingTime = closingTime + 691200;

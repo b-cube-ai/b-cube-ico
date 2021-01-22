@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: Unlicense
 pragma solidity 0.5.17;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -10,11 +10,21 @@ import "@openzeppelin/contracts/crowdsale/validation/TimedCrowdsale.sol";
 import "@openzeppelin/contracts/crowdsale/validation/WhitelistCrowdsale.sol";
 import "@chainlink/contracts/src/v0.5/interfaces/AggregatorV3Interface.sol";
 
+/**
+ * @title BCUBE Private Sale contract
+ * @author Smit Rajput @ b-cube.ai
+ **/
+
 contract BCubePrivateSale is TimedCrowdsale, WhitelistCrowdsale {
     using SafeMath for uint256;
     using SafeCast for uint256;
     using SafeERC20 for IERC20;
 
+    /// @dev allowance is # of BCUBE each participant can withdraw from treasury.
+    /// @param currentAllowance this allowance is in 4 stages tracked by currentAllowance
+    /// @param shareWithdrawn tracks the amount of BCUBE already withdrawn from treasury
+    /// @param dollarUnitsPayed 1 dollar = 100,000,000 dollar units. This tracks dollar units payed by user to this contract
+    /// @param allocatedBcube amount of BCUBE allocated to this user
     struct UserInfo {
         uint256 dollarUnitsPayed;
         uint256 allocatedBcube;
@@ -26,8 +36,10 @@ contract BCubePrivateSale is TimedCrowdsale, WhitelistCrowdsale {
     uint256 public netAllocatedBcube;
     uint256 public constant HARD_CAP = 10_000_000e18;
 
+    /// @dev variables whose instance fetch prices of USDT, ETH from Chainlink oracles
     AggregatorV3Interface internal priceFeedETH;
     AggregatorV3Interface internal priceFeedUSDT;
+
     IERC20 public usdt;
 
     event LogEtherReceived(address indexed sender, uint256 value);
@@ -49,6 +61,7 @@ contract BCubePrivateSale is TimedCrowdsale, WhitelistCrowdsale {
         uint256 newClosingTime
     );
 
+    /// @dev ensuring BCUBE allocations in private sale don't exceed 10m
     modifier tokensRemaining() {
         require(netAllocatedBcube < HARD_CAP, "All tokens allocated");
         _;
@@ -58,6 +71,14 @@ contract BCubePrivateSale is TimedCrowdsale, WhitelistCrowdsale {
         emit LogEtherReceived(_msgSender(), msg.value);
     }
 
+    /**
+     * @param wallet_ team's address which receives ETH, USDT from users
+     * @param token_ BCUBE token address
+     * @param openingTime_ private sale starting time
+     * @param closingTime_ private sale closing time
+     * @dev first argument of Crowdsale is dummy rate for the parent contract which is
+     * not used for this contract
+     */
     constructor(
         address payable wallet_,
         IERC20 token_,
@@ -76,25 +97,32 @@ contract BCubePrivateSale is TimedCrowdsale, WhitelistCrowdsale {
         usdt = IERC20(_usdtContract);
     }
 
+    /// @dev dummy rate for the parent contract which is not used for this contract
     function rate() public view returns (uint256) {
         revert("BCubePrivateSale: rate() called");
     }
 
+    /// @dev token buying function of the parent contract which is not used for this contract
     function buyTokens() public pure returns (uint256) {
         revert("BCubePrivateSale: buyTokens() called");
     }
 
+    /// @dev fetching ETH price from chainlink oracle
     function fetchETHPrice() public view returns (int256) {
         (, int256 price, , , ) = priceFeedETH.latestRoundData();
         return price;
     }
 
+    /// @dev fetching USDT price from chainlink oracle
     function fetchUSDTPrice() public view returns (int256) {
         (, int256 price, , , ) = priceFeedUSDT.latestRoundData();
         int256 ethUSD = fetchETHPrice();
         return (price * ethUSD) / 1e18;
     }
 
+    /// @dev rate i.e. number of BCUBE units (wBCUBE from now) per dollar unit, offer to private investors
+    /// @return 2nd parameter is the number representing the current stage of the sale
+    /// @dev rates for stage 3, 4 are (200/9 * 10**10) and (200/11 * 10**10)
     function calcRate() private view returns (uint256, uint8) {
         if (netAllocatedBcube < 2_500_000e18) {
             return (25e10, 1);
@@ -107,6 +135,7 @@ contract BCubePrivateSale is TimedCrowdsale, WhitelistCrowdsale {
         }
     }
 
+    /// @dev allowing resetting ETH, USDT priceFeed instances, in case current Chainlink contracts upgrade
     function setETHPriceFeed(address _newChainlinkETHPriceFeed)
         external
         onlyWhitelistAdmin
@@ -123,6 +152,7 @@ contract BCubePrivateSale is TimedCrowdsale, WhitelistCrowdsale {
         emit LogUSDTPriceFeedChange(_newChainlinkUSDTPriceFeed);
     }
 
+    /// @dev allowing resetting USDT instance, in case current contract upgrades
     function setUSDTInstance(address _newUsdtContract)
         external
         onlyWhitelistAdmin
@@ -131,6 +161,7 @@ contract BCubePrivateSale is TimedCrowdsale, WhitelistCrowdsale {
         emit LogUSDTInstanceChange(_newUsdtContract);
     }
 
+    /// @dev to extend the current closing time of private sale
     function extendClosingTime(uint256 _newClosingTime)
         external
         onlyWhitelistAdmin
@@ -139,6 +170,10 @@ contract BCubePrivateSale is TimedCrowdsale, WhitelistCrowdsale {
         emit LogPrivateSaleTimeExtension(closingTime(), _newClosingTime);
     }
 
+    /// @dev allowing users to allocate BCUBEs for themselves using ETH
+    /// only KYC/AML whitelisted users can call this, while the sale is open and allocation hard cap is not reached
+    /// @dev it fetches current price of ETH, multiples that by incoming ETH to calc total incoming dollar units, then
+    /// allocates appropriate amount of BCUBE to user based on current rate, stage
     function buyBcubeUsingETH()
         external
         payable
@@ -155,6 +190,8 @@ contract BCubePrivateSale is TimedCrowdsale, WhitelistCrowdsale {
         emit LogBcubeBuyUsingEth(_msgSender(), msg.value, allocation);
     }
 
+    /// @dev allowing users to allocate BCUBEs for themselves using USDT
+    /// does all things similar to the above function, but for USDT
     function buyBcubeUsingUSDT(uint256 incomingUsdt)
         external
         onlyWhitelisted
@@ -170,6 +207,17 @@ contract BCubePrivateSale is TimedCrowdsale, WhitelistCrowdsale {
         emit LogBcubeBuyUsingUsdt(_msgSender(), incomingUsdt, allocation);
     }
 
+    /// @dev stageCap is max net BCUBEs allocated until a given stage i.e. 2.5m, 5m, 7.5m, 10m for stages 1,2,3,4
+    /// @dev based on current netAllocatedBcube, fetches rate from calcRate()
+    /// then assigns minimum contribution for this round to minDollarUnits and checks it with the user
+    /// then checks for net contribution to be <= $25000 for the user
+    /// then calculates BCUBEs allocated to user from #BCUBE = rate * dollarUnits
+    /// => #wBCUBE = ((#wBCUBE / unit dollar) for this stage) * dollarUnits
+    /// Now, if new netAllocatedBcube does not exceed stageCap, the user is directly assigned their calculated BCUBE share
+    /// but if it exceeds the stage cap, then the user's BCUBE share for this stage remains same until stageCap (a1),
+    /// and the exceeding allocation is recalculated using rate of the next stage (a2)
+    /// then a1 + a2 is allocated to the user
+    /// Math for this can be found in the README
     function executeAllocation(uint256 dollarUnits) private returns (uint256) {
         uint256 finalAllocation;
         uint256 bcubeAllocatedToUser;
