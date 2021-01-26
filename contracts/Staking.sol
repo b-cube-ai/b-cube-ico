@@ -13,7 +13,7 @@ import "@openzeppelin/contracts/ownership/Ownable.sol";
  * @author Smit Rajput @ b-cube.ai
  **/
 
-contract Staking is Ownable {
+contract Staking {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -26,7 +26,7 @@ contract Staking is Ownable {
     event LogBcubeUnstaking(address indexed unstaker, uint256 bcubeAmount);
 
     function() external payable {
-        emit LogEtherReceived(_msgSender(), msg.value);
+        emit LogEtherReceived(msg.sender, msg.value);
     }
 
     constructor(IERC20 _bcube) public {
@@ -35,23 +35,23 @@ contract Staking is Ownable {
 
     function stake(uint256 _bcubeAmount) external {
         require(_bcubeAmount > 0, "Staking non-positive BCUBE");
-        bcubeStakeRegistry[_msgSender()] = bcubeStakeRegistry[_msgSender()].add(
+        bcubeStakeRegistry[msg.sender] = bcubeStakeRegistry[msg.sender].add(
             _bcubeAmount
         );
-        bcube.safeTransferFrom(_msgSender(), address(this), _bcubeAmount);
-        emit LogBcubeStaking(_msgSender(), _bcubeAmount);
+        bcube.safeTransferFrom(msg.sender, address(this), _bcubeAmount);
+        emit LogBcubeStaking(msg.sender, _bcubeAmount);
     }
 
     function unstake(uint256 _bcubeAmount) external {
         require(_bcubeAmount > 0, "Unstaking non-positive BCUBE");
         require(
-            bcubeStakeRegistry[_msgSender()] >= _bcubeAmount,
+            bcubeStakeRegistry[msg.sender] >= _bcubeAmount,
             "Insufficient staked bcube"
         );
-        bcubeStakeRegistry[_msgSender()] = bcubeStakeRegistry[_msgSender()].sub(
+        bcubeStakeRegistry[msg.sender] = bcubeStakeRegistry[msg.sender].sub(
             _bcubeAmount
         );
-        bcube.safeTransferFrom(address(this), _msgSender(), _bcubeAmount);
-        emit LogBcubeUnstaking(_msgSender(), _bcubeAmount);
+        bcube.safeTransfer(msg.sender, _bcubeAmount);
+        emit LogBcubeUnstaking(msg.sender, _bcubeAmount);
     }
 }
