@@ -2,6 +2,7 @@
 pragma solidity 0.5.17;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/drafts/SignedSafeMath.sol";
 import "@openzeppelin/contracts/utils/SafeCast.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
@@ -17,6 +18,7 @@ import "@chainlink/contracts/src/v0.5/interfaces/AggregatorV3Interface.sol";
 
 contract BCubePrivateSale is TimedCrowdsale, WhitelistCrowdsale {
     using SafeMath for uint256;
+    using SignedSafeMath for int256;
     using SafeCast for uint256;
     using SafeERC20 for IERC20;
 
@@ -117,7 +119,7 @@ contract BCubePrivateSale is TimedCrowdsale, WhitelistCrowdsale {
     function fetchUSDTPrice() public view returns (int256) {
         (, int256 price, , , ) = priceFeedUSDT.latestRoundData();
         int256 ethUSD = fetchETHPrice();
-        return (price * ethUSD) / 1e18;
+        return price.mul(ethUSD).div(1e18);
     }
 
     /// @dev rate i.e. number of BCUBE units (wBCUBE from now) per dollar unit, offer to private investors

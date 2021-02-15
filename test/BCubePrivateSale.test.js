@@ -69,6 +69,11 @@ describe("BCUBE Private Sale tests with boundaries bought in ETH", async functio
         from: accounts[0],
       });
     }
+    await web3.eth.sendTransaction({
+      from: accounts[23],
+      to: "0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828",
+      value: web3.utils.toWei("5", "ether"),
+    });
   });
 
   after(async function () {
@@ -833,6 +838,11 @@ describe("BCUBE Private Sale tests with boundaries bought in USDT", function () 
         from: accounts[0],
       });
     }
+    await web3.eth.sendTransaction({
+      from: accounts[23],
+      to: "0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828",
+      value: web3.utils.toWei("5", "ether"),
+    });
   });
 
   after(async function () {

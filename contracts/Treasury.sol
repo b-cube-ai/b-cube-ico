@@ -162,9 +162,9 @@ contract Treasury is BCubePrivateSale {
         uint256 allowance;
         require(advisors[_msgSender()].increaseInAllowance > 0, "!advisor");
         uint256 increase = advisors[_msgSender()].increaseInAllowance;
-        if (now >= listingTime + 104 weeks) allowance = increase * 4;
-        else if (now >= listingTime + 78 weeks) allowance = increase * 3;
-        else if (now >= listingTime + 52 weeks) allowance = increase * 2;
+        if (now >= listingTime + 104 weeks) allowance = increase.mul(4);
+        else if (now >= listingTime + 78 weeks) allowance = increase.mul(3);
+        else if (now >= listingTime + 52 weeks) allowance = increase.mul(2);
         else if (now >= listingTime + 26 weeks) allowance = increase;
         if (allowance != advisors[_msgSender()].currentAllowance)
             advisors[_msgSender()].currentAllowance = allowance;
