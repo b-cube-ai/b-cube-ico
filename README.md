@@ -59,8 +59,8 @@ After 'npm install'ing in the project root,
 
 In tests of BCUBE Private Sale, approx. 23 tests are seen failing by very narrow margins. Plz consider these as intended behaviour.
 
-Total tests: 186,
-Passing: 163,
+Total tests: 195,
+Passing: 172,
 Failing: 23
 
 ## Math
