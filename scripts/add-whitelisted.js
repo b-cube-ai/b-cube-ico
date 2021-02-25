@@ -1,7 +1,7 @@
 const { ethers } = require('ethers');
 const CONSTANTS = require("../constants");
 
-const TREASURY_ADDRESS = '0x069E922765a2f8b6d019b70b1af8c36328a6cFA1';
+const TREASURY_ADDRESS = '0x3C128B35705A5f0Ec1ACFaac77677b3EB19F881F';
 const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY;
 const INFURA_PROJECT_ID = process.env.INFURA_PROJECT_ID;
 
