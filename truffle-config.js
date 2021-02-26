@@ -76,7 +76,7 @@ module.exports = {
     rinkeby: {
       provider: () => new HDWalletProvider(
         'hire tuition priority ridge clip galaxy happy range victory avocado credit goddess camp saddle bike',
-        `https://rinkeby.infura.io/v3/a6cc1bf977bd40beb189ff86fc558ca2`
+        `https://rinkeby.infura.io/v3/${INFURA_PRODUCT_ID}`
       ),
       network_id: 4,
       skipDryRun: false,

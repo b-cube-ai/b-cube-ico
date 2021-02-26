@@ -76,3 +76,9 @@ For user buying BCUBE on stage boundaries or when netAllocatedBcube exceeds stag
 1. Fundamentally onlyWhitelistAdmin and the checks for advisor and private investor are doing the same thing, i.e. checking the root variables (\_whitelistAdmins for onlyWhitelistAdmin) for proof of change of variable on addition of admin/advisor/privateInvestor. It’s just that it looks a bit different for advisor/privateInvestor as their root variables (bcubeAllocationRegistry, advisors) are structured differently. Other solutions on top of this will only add to storage costs.
 2. Fixed.
 3. On line 112, 118 in BCubePrivateSale.sol, I’ve purposefully excluded accepting output variables other than int256 price, bcoz they’re simply not useful for us. Apart from this, the output format of the price feed matches exactly as recommended by Chainlink in the blog and also in their docs. And fixed the SafeMath.
+
+## Mainnet addresses
+
+* Token: `0x93C9175E26F57d2888c7Df8B470C9eeA5C0b0A93`
+* Treasury: `0xC1D1b440f9e012C1300d5bd665850E03C3a51fDc`
+* Staking: `0xEf4C1296898eD7235d31d9A8Cc242C08Ac61b397`
