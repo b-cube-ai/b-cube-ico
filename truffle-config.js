@@ -18,7 +18,7 @@
  *
  */
 
-// const HDWalletProvider = require('@truffle/hdwallet-provider');
+const HDWalletProvider = require('@truffle/hdwallet-provider');
 // const infuraKey = "fj4jll3k.....";
 //
 // const fs = require('fs');
@@ -72,6 +72,16 @@ module.exports = {
     // network_id: 2111,   // This network is yours, in the cloud.
     // production: true    // Treats this network as if it was a public net. (default: false)
     // }
+
+    rinkeby: {
+      provider: () => new HDWalletProvider(
+        'hire tuition priority ridge clip galaxy happy range victory avocado credit goddess camp saddle bike',
+        `https://rinkeby.infura.io/v3/a6cc1bf977bd40beb189ff86fc558ca2`
+      ),
+      network_id: 4,
+      skipDryRun: false,
+      gasPrice: 1,
+    }
   },
   compilers: {
     solc: {
