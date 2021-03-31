@@ -2,6 +2,7 @@ const BCUBEToken = require("./build/contracts/BCUBEToken.json");
 const BCubePrivateSale = require("./build/contracts/BCubePrivateSale.json");
 const BCubePublicSale = require("./build/contracts/BCubePublicSale.json");
 const Treasury = require("./build/contracts/Treasury.json");
+const PublicSaleTreasury = require("./build/contracts/PublicSaleTreasury.json");
 const Staking = require("./build/contracts/Staking.json");
 
 let TOKEN_ADDRESS, BPS_ADDRESS, TREASURY_ADDRESS, STAKING_ADDRESS;
@@ -10,6 +11,7 @@ const BPS_ABI = BCubePrivateSale.abi;
 const TREASURY_ABI = Treasury.abi;
 const STAKING_ABI = Staking.abi;
 const BPUBLICSALE_ABI = BCubePublicSale.abi;
+const PUBLIC_SALE_TREASURY_ABI = PublicSaleTreasury.abi;
 // TOKEN_ADDRESS = BCUBEToken.networks[4447].address;
 // BPS_ADDRESS = BCubePrivateSale.networks[4447].address;
 // TREASURY_ADDRESS = Treasury.networks[4447].address;
@@ -419,4 +421,5 @@ module.exports = {
   TETHER_ADDRESS,
   TETHER_ABI,
   BPUBLICSALE_ABI,
+  PUBLIC_SALE_TREASURY_ABI,
 };

@@ -65,7 +65,6 @@ describe("BCUBE Public Sale tests", async function () {
       "0xEe9F2375b4bdF6387aa8265dD4FB8F16512A1d46",
       "0xdAC17F958D2ee523a2206206994597C13D831ec7",
       bcubePrivateSaleDeployed.address,
-      adminWallet,
       teamWallet
     );
     CONSTANTS.TOKEN_ADDRESS = bcubeDeployed.address;
@@ -74,6 +73,9 @@ describe("BCUBE Public Sale tests", async function () {
     bcube = new web3.eth.Contract(CONSTANTS.TOKEN_ABI, CONSTANTS.TOKEN_ADDRESS);
     bcubePrivateSale = new web3.eth.Contract(CONSTANTS.BPS_ABI, CONSTANTS.BPS_ADDRESS);
     bcubePublicSale = new web3.eth.Contract(CONSTANTS.BPUBLICSALE_ABI, CONSTANTS.BPUBLICSALE_ADDRESS);
+    await bcubePublicSale.methods.setAdmin(adminWallet).send({
+      from: deployerWallet,
+    });
     usdt = new web3.eth.Contract(
       CONSTANTS.TETHER_ABI,
       CONSTANTS.TETHER_ADDRESS

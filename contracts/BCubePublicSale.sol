@@ -71,7 +71,7 @@ contract BCubePublicSale is WhitelistedRole, Pausable {
     * @param _chainlinkUSDTPriceFeed address of the USDT price feed
     * @param _usdtContract address of the USDT ERC20 contract
     * @param _privateSale address of the Private Sale contract
-    * @param _admin admin wallet: can whitelist users, pause the public sale and change closingDate
+    * @param _wallet team wallet: where ETH end USDT will be transferred
     */
   constructor(
     uint256 _openingTime,
@@ -80,7 +80,6 @@ contract BCubePublicSale is WhitelistedRole, Pausable {
     address _chainlinkUSDTPriceFeed,
     address _usdtContract,
     address _privateSale,
-    address _admin,
     address payable _wallet
   )
     public WhitelistedRole()
@@ -92,7 +91,9 @@ contract BCubePublicSale is WhitelistedRole, Pausable {
     usdt = IERC20(_usdtContract);
     privateSaleWhitelisted = WhitelistedRole(_privateSale);
     wallet = _wallet;
+  }
 
+  function setAdmin(address _admin) public onlyWhitelistAdmin {
     // Add new admin for whitelisting, and remove msgSender as admin
     addWhitelistAdmin(_admin);
     renounceWhitelistAdmin();
