@@ -15,13 +15,17 @@ contract BCubePublicSale is WhitelistedRole, Pausable {
   using SafeCast for uint256;
   using SafeERC20 for IERC20;
 
-  /// @dev # of BCUBE each participant can withdraw from treasury after listing time
+  /// @dev allowance is # of BCUBE each participant can withdraw from treasury.
+  /// @param currentAllowance this allowance is in 4 stages tracked by currentAllowance
   /// @param shareWithdrawn tracks the amount of BCUBE already withdrawn from treasury
   /// @param dollarUnitsPayed 1 dollar = 100,000,000 dollar units. This tracks dollar units payed by user to this contract
-  /// @param allocatedBcube amount of BCUBE allocated to this user
+  /// @param allocatedBcubePreICO amount of BCUBE allocated to this user during the Pre-ICO stage
+  /// @param allocatedBcubeICO amount of BCUBE allocated to this user during the ICO stage
   struct UserInfo {
     uint256 dollarUnitsPayed;
-    uint256 allocatedBcube;
+    uint256 allocatedBcubePreICO;
+    uint256 allocatedBcubeICO;
+    uint256 currentAllowance;
     uint256 shareWithdrawn;
   }
 
@@ -59,7 +63,7 @@ contract BCubePublicSale is WhitelistedRole, Pausable {
   event LogETHPriceFeedChange(address indexed newChainlinkETHPriceFeed);
   event LogUSDTPriceFeedChange(address indexed newChainlinkUSDTPriceFeed);
   event LogUSDTInstanceChange(address indexed newUsdtContract);
-  event LogPrivateSaleTimeExtension(
+  event LogPublicSaleTimeExtension(
     uint256 previousClosingTime,
     uint256 newClosingTime
   );
@@ -176,7 +180,7 @@ contract BCubePublicSale is WhitelistedRole, Pausable {
     external
     onlyWhitelistAdmin
   {
-    emit LogPrivateSaleTimeExtension(closingTime, _newClosingTime);
+    emit LogPublicSaleTimeExtension(closingTime, _newClosingTime);
     closingTime = _newClosingTime;
   }
 
@@ -240,6 +244,10 @@ contract BCubePublicSale is WhitelistedRole, Pausable {
       dollarUnits >= 500e8,
       "BCubePublicSale: Minimal contribution is 500 USD"
     );
+    require(
+      dollarUnits <= 100000e8,
+      "BCubePublicSale: Maximal contribution is 100000 USD"
+    );
     (rate, stage) = calcRate();
     if (stage == 1) {
       stageCap = 8_000_000e18;
@@ -252,18 +260,23 @@ contract BCubePublicSale is WhitelistedRole, Pausable {
     bcubeAllocationRegistry[_msgSender()].dollarUnitsPayed = bcubeAllocationRegistry[_msgSender()].dollarUnitsPayed.add(dollarUnits);
     if (finalAllocation <= stageCap) {
       netSoldBcube = finalAllocation;
-      bcubeAllocationRegistry[_msgSender()].allocatedBcube = bcubeAllocationRegistry[_msgSender()].allocatedBcube.add(bcubeAllocatedToUser);
+      if (stage == 1) {
+        bcubeAllocationRegistry[_msgSender()].allocatedBcubePreICO = bcubeAllocationRegistry[_msgSender()].allocatedBcubePreICO.add(bcubeAllocatedToUser);
+      } else {
+        bcubeAllocationRegistry[_msgSender()].allocatedBcubeICO = bcubeAllocationRegistry[_msgSender()].allocatedBcubeICO.add(bcubeAllocatedToUser);
+      }
       return bcubeAllocatedToUser;
     } else {
       uint256 total;
       a1 = stageCap.sub(netSoldBcube);
       dollarUnitsUnused = dollarUnits.sub(a1.div(rate));
       netSoldBcube = stageCap;
+      bcubeAllocationRegistry[_msgSender()].allocatedBcubePreICO = bcubeAllocationRegistry[_msgSender()].allocatedBcubePreICO.add(a1);
       (rate, stage) = calcRate();
       a2 = dollarUnitsUnused.mul(rate);
       netSoldBcube = netSoldBcube.add(a2);
       total = a1.add(a2);
-      bcubeAllocationRegistry[_msgSender()].allocatedBcube = bcubeAllocationRegistry[_msgSender()].allocatedBcube.add(total);
+      bcubeAllocationRegistry[_msgSender()].allocatedBcubeICO = bcubeAllocationRegistry[_msgSender()].allocatedBcubeICO.add(a2);
       return total;
     }
   }

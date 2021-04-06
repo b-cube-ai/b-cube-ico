@@ -258,14 +258,14 @@ describe("BCUBE Public Sale tests", async function () {
     );
   });
 
-  it("should reverts for contribution range greater than HARD_CAP", async function () {
+  it("Pre-ICO reverts for contribution above $100000 USDT", async function () {
     await truffleAssert.reverts(
-      bcubePublicSale.methods.buyBcubeUsingUSDT(135000000000000).send({
+      bcubePublicSale.methods.buyBcubeUsingUSDT(150000000000).send({
         from: accounts[3],
       }),
-      "BCubePublicSale: Hard cap exceeded"
+      "BCubePublicSale: Maximal contribution is 100000 USD"
     );
-  });  
+  });
 
   it("buys $BCUBE @ $0.08 calling buyBcubeUsingETH(), checking allocation", async function () {
     ethPrice = new BigNumber(await bcubePublicSale.methods.fetchETHPrice().call());
@@ -291,7 +291,7 @@ describe("BCUBE Public Sale tests", async function () {
     ethDollars = new BigNumber(25000);
     ret = await bcubePublicSale.methods.bcubeAllocationRegistry(accounts[4]).call();
     expect(
-      new BigNumber(ret.allocatedBcube).div(eighteenZeroes).toFixed(0)
+      new BigNumber(ret.allocatedBcubePreICO).div(eighteenZeroes).toFixed(0)
     ).to.equal(ethDollars.times(100).div(8).toFixed(0));
     expect(
       new BigNumber(ret.dollarUnitsPayed).div(1000000000).toFixed(0),
@@ -315,19 +315,23 @@ describe("BCUBE Public Sale tests", async function () {
     await bcubePublicSale.methods.addWhitelisted(accounts[6]).send({
       from: adminWallet,
     });
-    await usdt.methods.approve(CONSTANTS.BPUBLICSALE_ADDRESS, "485000000000").send({
+    await usdt.methods.approve(CONSTANTS.BPUBLICSALE_ADDRESS, "500000000000").send({
       from: accounts[6],
     });
-    await usdt.methods.transfer(accounts[6], "485000000000").send({
+    await usdt.methods.transfer(accounts[6], "500000000000").send({
       from: "0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828",
     });
     usdtPrice = new BigNumber(await bcubePublicSale.methods.fetchUSDTPrice().call());
     usdtAmt = 48500000000000 / usdtPrice;
-    finalUsdtAmt = Math.floor(usdtAmt * 1000000);
-    await bcubePublicSale.methods.buyBcubeUsingUSDT(finalUsdtAmt.toString()).send({
-      from: accounts[6],
-      gasLimit: 6000000,
-    });
+    amount = (Math.floor(usdtAmt * 1000000) / 5);
+    finalUsdtAmt = 0;
+    for(let i = 1; i<= 5; i++) {
+      await bcubePublicSale.methods.buyBcubeUsingUSDT(amount.toFixed(0)).send({
+        from: accounts[6],
+        gasLimit: 6000000,
+      });
+      finalUsdtAmt += amount;
+    }
     ret = await bcubePublicSale.methods.bcubeAllocationRegistry(accounts[6]).call();
     usdtDollars = new BigNumber(485000);
     expect(
@@ -335,19 +339,19 @@ describe("BCUBE Public Sale tests", async function () {
       "485000"
     );
     expect(
-      new BigNumber(ret.allocatedBcube).div(eighteenZeroes).toFixed(0)
+      new BigNumber(ret.allocatedBcubePreICO).div(eighteenZeroes).toFixed(0)
     ).to.equal(usdtDollars.times(100).div(8).toFixed(0));
   });
   
   it("tests previous buy, checking team's _wallet()", async function () {
     bal = await usdt.methods.balanceOf(teamWallet).call();
     stage1Usdt = finalUsdtAmt;
-    expect((bal / 1000000).toString()).to.equal(
-      (finalUsdtAmt / 1000000).toString()
+    expect((bal / 1000000).toFixed(3)).to.equal(
+      (finalUsdtAmt / 1000000).toFixed(3)
     );
   });
 
-  it("boundary buys $BCUBE @ $0.04 calling buyBcubeUsingETH(), checking allocation", async function () {
+  it("boundary buys $BCUBE @ $0.08 calling buyBcubeUsingETH(), checking allocation", async function () {
     // At this step, it remains 1 000 000 tokens in Pre-ICO
     await bcubePublicSale.methods.addWhitelisted(accounts[7]).send({
       from: adminWallet,
@@ -362,11 +366,15 @@ describe("BCUBE Public Sale tests", async function () {
     ret = await bcubePublicSale.methods.bcubeAllocationRegistry(accounts[7]).call();
     ethDollarsOne = new BigNumber(80000);
     ethDollarsTwo = new BigNumber(20000);
-    nextStageAllocation = ethDollarsTwo.times(10);
     expect(
-      new BigNumber(ret.allocatedBcube).div(eighteenZeroes).toFixed(0)
+      new BigNumber(ret.allocatedBcubePreICO).div(eighteenZeroes).toFixed(0)
     ).to.equal(
-      ethDollarsOne.times(100).div(8).plus(nextStageAllocation).toFixed(0)
+      ethDollarsOne.times(100).div(8).toFixed(0)
+    )    
+    expect(
+      new BigNumber(ret.allocatedBcubeICO).div(eighteenZeroes).toFixed(0)
+    ).to.equal(
+      ethDollarsTwo.times(10).toFixed(0)
     )    
   });
   
@@ -436,7 +444,7 @@ describe("BCUBE Public Sale tests", async function () {
     ret = await bcubePublicSale.methods.bcubeAllocationRegistry(accounts[9]).call();
     ethDollars = new BigNumber(25000);
     expect(
-      new BigNumber(ret.allocatedBcube).div(eighteenZeroes).toFixed(0)
+      new BigNumber(ret.allocatedBcubeICO).div(eighteenZeroes).toFixed(0)
     ).to.equal(ethDollars.times(10).toFixed(0));
   });
 
@@ -468,7 +476,7 @@ describe("BCUBE Public Sale tests", async function () {
     ret = await bcubePublicSale.methods.bcubeAllocationRegistry(accounts[10]).call();
     usdtDollars = new BigNumber(25000);
     expect(
-      new BigNumber(ret.allocatedBcube).div(eighteenZeroes).toFixed(0)
+      new BigNumber(ret.allocatedBcubeICO).div(eighteenZeroes).toFixed(0)
     ).to.equal(usdtDollars.times(10).toFixed(0));
   });
 
@@ -518,8 +526,14 @@ describe("BCUBE Public Sale tests", async function () {
     await bcubePublicSale.methods.addWhitelisted(accounts[15]).send({
       from: adminWallet,
     });
+    await bcubePublicSale.methods.addWhitelisted(accounts[16]).send({
+      from: adminWallet,
+    });
+    await bcubePublicSale.methods.addWhitelisted(accounts[17]).send({
+      from: adminWallet,
+    });
     ethPrice = new BigNumber(await bcubePublicSale.methods.fetchETHPrice().call());
-    ethToBuyBcube = 15000000000000 / ethPrice.toNumber();
+    ethToBuyBcube = 10000000000000 / ethPrice.toNumber();
     await bcubePublicSale.methods.buyBcubeUsingETH().send({
       from: accounts[11],
       value: web3.utils.toWei(ethToBuyBcube.toString(), "ether"),
@@ -537,7 +551,17 @@ describe("BCUBE Public Sale tests", async function () {
     });
     await bcubePublicSale.methods.buyBcubeUsingETH().send({
       from: accounts[14],
-      value: web3.utils.toWei((10000000000000 / ethPrice.toNumber()).toString(), "ether"),
+      value: web3.utils.toWei(ethToBuyBcube.toString(), "ether"),
+      gasLimit: 6000000,
+    });
+    await bcubePublicSale.methods.buyBcubeUsingETH().send({
+      from: accounts[15],
+      value: web3.utils.toWei(ethToBuyBcube.toString(), "ether"),
+      gasLimit: 6000000,
+    });
+    await bcubePublicSale.methods.buyBcubeUsingETH().send({
+      from: accounts[16],
+      value: web3.utils.toWei((5000000000000 / ethPrice.toNumber()).toString(), "ether"),
       gasLimit: 6000000,
     });
     netSoldBcube = new BigNumber(await bcubePublicSale.methods.netSoldBcube().call())
@@ -547,8 +571,9 @@ describe("BCUBE Public Sale tests", async function () {
     ethToBuyBcube60k = 6000000000000 / ethPrice.toNumber();
     await truffleAssert.reverts(
       bcubePublicSale.methods.buyBcubeUsingETH().send({
-        from: accounts[15],
+        from: accounts[17],
         value: web3.utils.toWei(ethToBuyBcube60k.toString(), "ether"),
+        gasLimit: 6000000,
       }),
       "BCubePublicSale: Hard cap exceeded"
     );
