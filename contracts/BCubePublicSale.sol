@@ -138,13 +138,13 @@ contract BCubePublicSale is WhitelistedRole, Pausable {
 
   function calcRate() private view returns (uint256, uint8) {
     // Two phases, with two different prices
-    // Phase 1 - Pre-ICO: the first 8m tokens at 0.08 USD
-    // Phase 2 - ICO: the remaining 7m tokens at 0.10 USD
+    // Phase 1 - Pre-ICO: the first 8m tokens at 0.15 USD
+    // Phase 2 - ICO: the remaining 7m tokens at 0.20 USD
 
     if (netSoldBcube < 8_000_000e18) {
-      return (125e9, 1);    // Pre-ICO
+      return (66666666666, 1);    // Pre-ICO
     } else {
-      return (10e10, 2);    // ICO
+      return (5e10, 2);    // ICO
     }
   }
 
