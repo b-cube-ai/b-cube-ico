@@ -54,7 +54,7 @@ Following details have been implemented in Treasury.sol
 
 After 'npm install'ing in the project root,
 
-1. `ganache-cli -a 25 -f "https://mainnet.infura.io/v3/your-infura-project-id" --unlock 0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828 --networkId 4447`
+1. `ganache-cli -a 40 -f "https://mainnet.infura.io/v3/your-infura-project-id" --unlock 0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828 --networkId 4447`
 2. `truffle --network development test`
 
 In tests of BCUBE Private Sale, approx. 23 tests are seen failing by very narrow margins. Plz consider these as intended behaviour.

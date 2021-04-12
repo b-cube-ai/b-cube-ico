@@ -21,7 +21,6 @@ contract PublicSaleTreasury is BCubePublicSale {
 
     IERC20 public token;
 
-    event LogEtherReceived(address indexed sender, uint256 value);
     event LogListingTimeChange(uint256 prevListingTime, uint256 newListingTime);
     event LogPublicSaleShareWithdrawn(
         address indexed participant,
@@ -32,11 +31,7 @@ contract PublicSaleTreasury is BCubePublicSale {
         require(now >= listingTime, "Only callable after listing");
         _;
     }
-
-    function() external payable {
-        emit LogEtherReceived(_msgSender(), msg.value);
-    }
-
+    
     constructor(
         address payable _wallet,
         address _admin,
@@ -88,16 +83,16 @@ contract PublicSaleTreasury is BCubePublicSale {
         uint256 increaseICO = bcubeAllocationRegistry[_msgSender()].allocatedBcubeICO.div(4);
         if (now >= listingTime + 90 days) {
             // From listing date + 90 days: public sale participants can withdraw 100% of Pre-ICO tokens & 100% of ICO tokens
-            allowance = increasePreICO.mul(4) + increaseICO.mul(4);
+            allowance = increasePreICO.mul(4).add(increaseICO.mul(4));
         } else if (now >= listingTime + 60 days) {
             // From listing date + 60 days: public sale participants can withdraw  75% of Pre-ICO tokens & 100% of ICO tokens
-            allowance = increasePreICO.mul(3) + increaseICO.mul(4);
+            allowance = increasePreICO.mul(3).add(increaseICO.mul(4));
         } else if (now >= listingTime + 30 days) {
             // From listing date + 30 days: public sale participants can withdraw  50% of Pre-ICO tokens &  75% of ICO tokens
-            allowance = increasePreICO.mul(2) + increaseICO.mul(3);
+            allowance = increasePreICO.mul(2).add(increaseICO.mul(3));
         } else {
             // From listing date: public sale participants can withdraw            25% of Pre-ICO tokens &  50% of ICO tokens
-            allowance = increasePreICO + increaseICO.mul(2);
+            allowance = increasePreICO.add(increaseICO.mul(2));
         }
         if (allowance != bcubeAllocationRegistry[_msgSender()].currentAllowance)
             bcubeAllocationRegistry[_msgSender()].currentAllowance = allowance;

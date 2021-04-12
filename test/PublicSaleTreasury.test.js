@@ -202,7 +202,7 @@ describe("Treasury tests without private sale", async function () {
   });
 
   it("allows 5 to withdraw 25% of Pre-ICO tokens after listing", async function () {
-    const withdraw = new BigNumber(alloc5.allocatedBcubePreICO).div(4).toFixed(0);
+    const withdraw = new BigNumber(alloc5.allocatedBcubePreICO).div(4).toFixed(0,1);
     await psTreasury.methods.publicSaleShareWithdraw(withdraw).send({
       from: accounts[5],
       gasLimit: 6000000,
@@ -243,7 +243,7 @@ describe("Treasury tests without private sale", async function () {
   });
 
   it("allows 17 to withdraw 25% of Pre-ICO + 50% of ICO tokens after listing", async function () {
-    const withdraw = new BigNumber(alloc17.allocatedBcubePreICO).div(4).plus(new BigNumber(alloc17.allocatedBcubeICO).div(2)).toFixed(0);
+    const withdraw = new BigNumber(alloc17.allocatedBcubePreICO).div(4).plus(new BigNumber(alloc17.allocatedBcubeICO).div(2)).toFixed(0,1);
     await psTreasury.methods.publicSaleShareWithdraw(withdraw).send({
       from: accounts[17],
       gasLimit: 6000000,
@@ -277,7 +277,7 @@ describe("Treasury tests without private sale", async function () {
   });
 
   it("allows 5 to withdraw 50% Pre-ICO tokens after listing + 31 days", async function () {
-    const withdraw = new BigNumber(alloc5.allocatedBcubePreICO).div(4).toFixed(0);
+    const withdraw = new BigNumber(alloc5.allocatedBcubePreICO).div(4).toFixed(0,1);
     await psTreasury.methods.publicSaleShareWithdraw(withdraw).send({
       from: accounts[5],
       gasLimit: 6000000,
@@ -298,7 +298,7 @@ describe("Treasury tests without private sale", async function () {
   });
 
   it("allows 18 to withdraw 75% of ICO tokens after listing + 31 days", async function () {
-    const withdraw = new BigNumber(alloc18.allocatedBcubeICO).div(4).toFixed(0);
+    const withdraw = new BigNumber(alloc18.allocatedBcubeICO).div(4).toFixed(0,1);
     await psTreasury.methods.publicSaleShareWithdraw(withdraw).send({
       from: accounts[18],
       gasLimit: 6000000,
@@ -308,7 +308,7 @@ describe("Treasury tests without private sale", async function () {
   });
 
   it("allows 17 to withdraw 50% of Pre-ICO + 75% of ICO tokens after listing + 31 days", async function () {
-    const withdraw = new BigNumber(alloc17.allocatedBcubePreICO).div(4).plus(new BigNumber(alloc17.allocatedBcubeICO).div(4)).toFixed(0);
+    const withdraw = new BigNumber(alloc17.allocatedBcubePreICO).div(4).plus(new BigNumber(alloc17.allocatedBcubeICO).div(4)).toFixed(0,1);
     await psTreasury.methods.publicSaleShareWithdraw(withdraw).send({
       from: accounts[17],
       gasLimit: 6000000,
@@ -333,7 +333,7 @@ describe("Treasury tests without private sale", async function () {
   });
 
   it("allows 5 to withdraw 75% Pre-ICO tokens after listing + 62 days", async function () {
-    const withdraw = new BigNumber(alloc5.allocatedBcubePreICO).div(4).toFixed(0);
+    const withdraw = new BigNumber(alloc5.allocatedBcubePreICO).div(4).toFixed(0,1);
     await psTreasury.methods.publicSaleShareWithdraw(withdraw).send({
       from: accounts[5],
       gasLimit: 6000000,
@@ -343,7 +343,7 @@ describe("Treasury tests without private sale", async function () {
   });
 
   it("allows 18 to withdraw 100% of ICO tokens after listing + 62 days", async function () {
-    const withdraw = new BigNumber(alloc18.allocatedBcubeICO).div(4).toFixed(0);
+    const withdraw = new BigNumber(alloc18.allocatedBcubeICO).div(4).toFixed(0,1);
     await psTreasury.methods.publicSaleShareWithdraw(withdraw).send({
       from: accounts[18],
       gasLimit: 6000000,
@@ -353,7 +353,7 @@ describe("Treasury tests without private sale", async function () {
   });
 
   it("allows 17 to withdraw 75% of Pre-ICO + 100% of ICO tokens after listing + 62 days", async function () {
-    const withdraw = new BigNumber(alloc17.allocatedBcubePreICO).div(4).plus(new BigNumber(alloc17.allocatedBcubeICO).div(4)).toFixed(0);
+    const withdraw = new BigNumber(alloc17.allocatedBcubePreICO).div(4).plus(new BigNumber(alloc17.allocatedBcubeICO).div(4)).toFixed(0,1);
     await psTreasury.methods.publicSaleShareWithdraw(withdraw).send({
       from: accounts[17],
       gasLimit: 6000000,
@@ -367,7 +367,7 @@ describe("Treasury tests without private sale", async function () {
   it("allows 5 to withdraw all Pre-ICO tokens after listing + 93 days", async function () {
     // 93 days after listing
     await timeMachine.advanceTimeAndBlock(2678400);
-    const withdraw = new BigNumber(alloc5.allocatedBcubePreICO).div(4).toFixed(0);
+    const withdraw = new BigNumber(alloc5.allocatedBcubePreICO).div(4).toFixed(0,1);
     await psTreasury.methods.publicSaleShareWithdraw(withdraw).send({
       from: accounts[5],
       gasLimit: 6000000,
@@ -377,7 +377,7 @@ describe("Treasury tests without private sale", async function () {
   });
 
   it("allows 17 to withdraw 100% of Pre-ICO + 100% of ICO tokens after listing + 93 days", async function () {
-    const withdraw = new BigNumber(alloc17.allocatedBcubePreICO).div(4).toFixed(0);
+    const withdraw = new BigNumber(alloc17.allocatedBcubePreICO).div(4).toFixed(0,1);
     await psTreasury.methods.publicSaleShareWithdraw(withdraw).send({
       from: accounts[17],
       gasLimit: 6000000,

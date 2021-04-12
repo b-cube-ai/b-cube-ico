@@ -221,7 +221,7 @@ contract BCubePublicSale is WhitelistedRole, Pausable {
     emit LogBcubeBuyUsingUsdt(_msgSender(), incomingUsdt, allocation);
   }
 
-  /// @dev stageCap is max net BCUBEs allocated until a given stage i.e. 7m, 15m for stages "pre-ico" and "ico"
+  /// @dev stageCap is max net BCUBEs allocated until a given stage i.e. 8m, 15m for stages "pre-ico" and "ico"
   /// @dev based on current netSoldBcube, fetches rate from calcRate()
   /// check that contribution is >= 500 USD (minimal contribution)
   /// then calculates BCUBEs allocated to user from #BCUBE = rate * dollarUnits
@@ -282,16 +282,21 @@ contract BCubePublicSale is WhitelistedRole, Pausable {
   }
 
   /// @dev fetching ETH price from chainlink oracle
-  function fetchETHPrice() public view returns (int256) {
+  function fetchETHPrice() public view returns (uint256) {
     (, int256 price, , , ) = priceFeedETH.latestRoundData();
-    return price;
+    return toUint256(price);
   }
 
   /// @dev fetching USDT price from chainlink oracle
-  function fetchUSDTPrice() public view returns (int256) {
+  function fetchUSDTPrice() public view returns (uint256) {
     (, int256 price, , , ) = priceFeedUSDT.latestRoundData();
-    int256 ethUSD = fetchETHPrice();
-    return price.mul(ethUSD).div(1e18);
+    uint256 ethUSD = fetchETHPrice();
+    return toUint256(price).mul(ethUSD).div(1e18);
+  }
+
+  function toUint256(int256 value) internal pure returns (uint256) {
+    require(value >= 0, "SafeCast: value must be positive");
+    return uint256(value);
   }
 
 }
