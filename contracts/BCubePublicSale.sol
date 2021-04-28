@@ -45,9 +45,9 @@ contract BCubePublicSale is WhitelistedRole {
   uint256 public openingTime;
   uint256 public closingTime;
 
-  uint256 public constant HARD_CAP               = 15_000_000e18;  // 15m
-  uint256 public constant PRIVATE_ALLOCATION_CAP =  6_000_000e18;  // 6m
-  uint256 public constant PUBLIC_LAUNCHPAD_CAP   =  2_750_000e18;  // 2.75m
+  uint256 public constant HARD_CAP               = 15_000_000e18;               // 15m
+  uint256 public constant PRIVATE_ALLOCATION_CAP =  6666666666666666666666667;  // 6.666666666666666666666667m
+  uint256 public constant PUBLIC_LAUNCHPAD_CAP   =  2_250_000e18;               // 2.75m
   
   uint256 public netSoldBcube;
   uint256 public netPrivateAllocatedBcube;
@@ -178,10 +178,10 @@ contract BCubePublicSale is WhitelistedRole {
 
   function calcRate() private view returns (uint256, uint8) {
     // Two phases, with two different prices
-    // Phase 1 - Private Round: the first 2m tokens at 0.15 USD
+    // Phase 1 - Private Round: the first 1,333333333333333333333333m tokens at 0.15 USD
     // Phase 2 - Public Round: the remaining tokens at 0.20 USD
 
-    if (netSoldBcube < 2_000_000e18) {
+    if (netSoldBcube < 1333333333333333333333333) { 
       return (66666666666, 1);    // Private round
     } else {
       return (5e10, 2);           // Public round
@@ -287,7 +287,7 @@ contract BCubePublicSale is WhitelistedRole {
     (rate, stage) = calcRate();
     uint256 current_hardcap = currentHardcap();
     if (stage == 1) {
-      stageCap = 2_000_000e18;
+      stageCap = 1333333333333333333333333;
     } else {
       stageCap = current_hardcap;
       require(
