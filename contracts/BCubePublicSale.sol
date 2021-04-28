@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/access/roles/WhitelistedRole.sol";
 import "@openzeppelin/contracts/lifecycle/Pausable.sol";
 import "@chainlink/contracts/src/v0.5/interfaces/AggregatorV3Interface.sol";
 
-contract BCubePublicSale is WhitelistedRole, Pausable {
+contract BCubePublicSale is WhitelistedRole {
   using SafeMath for uint256;
   using SignedSafeMath for int256;
   using SafeCast for uint256;
@@ -23,8 +23,9 @@ contract BCubePublicSale is WhitelistedRole, Pausable {
   /// @param allocatedBcubeICO amount of BCUBE allocated to this user during the ICO stage
   struct UserInfo {
     uint256 dollarUnitsPayed;
-    uint256 allocatedBcubePreICO;
-    uint256 allocatedBcubeICO;
+    uint256 allocatedBcubePrivateAllocation;
+    uint256 allocatedBcubePrivateRound;
+    uint256 allocatedBcubePublicRound;
     uint256 currentAllowance;
     uint256 shareWithdrawn;
   }
@@ -43,9 +44,14 @@ contract BCubePublicSale is WhitelistedRole, Pausable {
   uint256 public openingTime;
   uint256 public closingTime;
 
+  uint256 public constant HARD_CAP               = 15_000_000e18;  // 15m
+  uint256 public constant PRIVATE_ALLOCATION_CAP =  6_000_000e18;  // 6m
+  uint256 public constant PUBLIC_LAUNCHPAD_CAP   =  2_750_000e18;  // 2.75m
+  
   uint256 public netSoldBcube;
-  uint256 public constant HARD_CAP = 15_000_000e18; // 8m (Pre-ICO) + 7m (ICO)
-
+  uint256 public netPrivateAllocatedBcube;
+  uint256 public launchpadReservedBcube = PUBLIC_LAUNCHPAD_CAP;
+  
   // Address where funds are collected
   address payable private wallet;
   
@@ -67,6 +73,11 @@ contract BCubePublicSale is WhitelistedRole, Pausable {
     uint256 previousClosingTime,
     uint256 newClosingTime
   );
+  event LogPrivateAllocationChanged(
+    address wallet,
+    uint256 newAllocation
+  );
+  event LogLaunchpadReserveChanged(uint256 newReserve);
   
   /**
     * @param _openingTime public sale starting time
@@ -101,20 +112,20 @@ contract BCubePublicSale is WhitelistedRole, Pausable {
     // Add new admin for whitelisting, and remove msgSender as admin
     addWhitelistAdmin(_admin);
     renounceWhitelistAdmin();
-
-    // Add new admin for pause, and remove addPauser as pauser
-    addPauser(_admin);
-    renouncePauser();
   }
 
   function() external payable {
     emit LogEtherReceived(_msgSender(), msg.value);
   }
 
-  /// @dev public sale is open if current date is between openingTime and closingTime AND the contract is not paused
+  /// @dev public sale is open if current date is between openingTime and closingTime
   function isOpen() public view returns (bool) {
       // solhint-disable-next-line not-rely-on-time
-      return block.timestamp >= openingTime && block.timestamp <= closingTime && !paused();
+      return block.timestamp >= openingTime && block.timestamp <= closingTime;
+  }
+
+  function currentHardcap() public view returns (uint256) {
+    return HARD_CAP.sub(PRIVATE_ALLOCATION_CAP).sub(launchpadReservedBcube);
   }
 
   modifier onlyWhitelisted() {
@@ -132,19 +143,47 @@ contract BCubePublicSale is WhitelistedRole, Pausable {
 
   /// @dev ensuring BCUBE allocations in public sale don't exceed 15m
   modifier tokensRemaining() {
-    require(netSoldBcube < HARD_CAP, "BCubePublicSale: All tokens sold");
+    require(
+      netSoldBcube < currentHardcap(),
+      "BCubePublicSale: All tokens sold"
+    );
     _;
+  }
+
+  function setPrivateAllocation(address _wallet, uint256 _allocation)
+    external
+    onlyWhitelistAdmin {
+    require(block.timestamp <= closingTime, "BCubePublicSale: sale is closed");
+    uint256 _previousAllocation = bcubeAllocationRegistry[_wallet].allocatedBcubePrivateAllocation;
+    uint256 _newPrivateAllocation = netPrivateAllocatedBcube.sub(_previousAllocation).add(_allocation);
+    require(
+      _newPrivateAllocation <= PRIVATE_ALLOCATION_CAP,
+      "BCubePublicSale: private allocation exceed PRIVATE_ALLOCATION_CAP"
+    );
+    netPrivateAllocatedBcube = _newPrivateAllocation;
+    bcubeAllocationRegistry[_wallet].allocatedBcubePrivateAllocation = _allocation; 
+    emit LogPrivateAllocationChanged(_wallet, _allocation);
+  }
+
+  function decreaseLaunchpadReservedBcube(uint256 _newReserve)
+    external
+    onlyWhitelistAdmin
+    onlyWhileOpen {
+    require(_newReserve <= launchpadReservedBcube, "BCubePublicSale: new reserve can only be decreased");
+    require(_newReserve >= 0, "BCubePublicSale: new reserve MUST BE >= 0");
+    launchpadReservedBcube = _newReserve;
+    emit LogLaunchpadReserveChanged(_newReserve);
   }
 
   function calcRate() private view returns (uint256, uint8) {
     // Two phases, with two different prices
-    // Phase 1 - Pre-ICO: the first 8m tokens at 0.15 USD
-    // Phase 2 - ICO: the remaining 7m tokens at 0.20 USD
+    // Phase 1 - Private Round: the first 2m tokens at 0.15 USD
+    // Phase 2 - Public Round: the remaining tokens at 0.20 USD
 
-    if (netSoldBcube < 8_000_000e18) {
-      return (66666666666, 1);    // Pre-ICO
+    if (netSoldBcube < 2_000_000e18) {
+      return (66666666666, 1);    // Private round
     } else {
-      return (5e10, 2);    // ICO
+      return (5e10, 2);           // Public round
     }
   }
 
@@ -244,26 +283,27 @@ contract BCubePublicSale is WhitelistedRole, Pausable {
       dollarUnits >= 500e8,
       "BCubePublicSale: Minimal contribution is 500 USD"
     );
-    require(
-      dollarUnits <= 100000e8,
-      "BCubePublicSale: Maximal contribution is 100000 USD"
-    );
     (rate, stage) = calcRate();
+    uint256 current_hardcap = currentHardcap();
     if (stage == 1) {
-      stageCap = 8_000_000e18;
+      stageCap = 2_000_000e18;
     } else {
-      stageCap = 15_000_000e18;
+      stageCap = current_hardcap;
+      require(
+        dollarUnits <= 50000e8,
+        "BCubePublicSale: Maximal contribution is 50000 USD"
+      );  
     }
     bcubeAllocatedToUser = rate.mul(dollarUnits);
     finalAllocation = netSoldBcube.add(bcubeAllocatedToUser);
-    require(finalAllocation <= HARD_CAP, "BCubePublicSale: Hard cap exceeded");
+    require(finalAllocation <= current_hardcap, "BCubePublicSale: Hard cap exceeded");
     bcubeAllocationRegistry[_msgSender()].dollarUnitsPayed = bcubeAllocationRegistry[_msgSender()].dollarUnitsPayed.add(dollarUnits);
     if (finalAllocation <= stageCap) {
       netSoldBcube = finalAllocation;
       if (stage == 1) {
-        bcubeAllocationRegistry[_msgSender()].allocatedBcubePreICO = bcubeAllocationRegistry[_msgSender()].allocatedBcubePreICO.add(bcubeAllocatedToUser);
+        bcubeAllocationRegistry[_msgSender()].allocatedBcubePrivateRound = bcubeAllocationRegistry[_msgSender()].allocatedBcubePrivateRound.add(bcubeAllocatedToUser);
       } else {
-        bcubeAllocationRegistry[_msgSender()].allocatedBcubeICO = bcubeAllocationRegistry[_msgSender()].allocatedBcubeICO.add(bcubeAllocatedToUser);
+        bcubeAllocationRegistry[_msgSender()].allocatedBcubePublicRound = bcubeAllocationRegistry[_msgSender()].allocatedBcubePublicRound.add(bcubeAllocatedToUser);
       }
       return bcubeAllocatedToUser;
     } else {
@@ -271,12 +311,12 @@ contract BCubePublicSale is WhitelistedRole, Pausable {
       a1 = stageCap.sub(netSoldBcube);
       dollarUnitsUnused = dollarUnits.sub(a1.div(rate));
       netSoldBcube = stageCap;
-      bcubeAllocationRegistry[_msgSender()].allocatedBcubePreICO = bcubeAllocationRegistry[_msgSender()].allocatedBcubePreICO.add(a1);
+      bcubeAllocationRegistry[_msgSender()].allocatedBcubePrivateRound = bcubeAllocationRegistry[_msgSender()].allocatedBcubePrivateRound.add(a1);
       (rate, stage) = calcRate();
       a2 = dollarUnitsUnused.mul(rate);
       netSoldBcube = netSoldBcube.add(a2);
       total = a1.add(a2);
-      bcubeAllocationRegistry[_msgSender()].allocatedBcubeICO = bcubeAllocationRegistry[_msgSender()].allocatedBcubeICO.add(a2);
+      bcubeAllocationRegistry[_msgSender()].allocatedBcubePublicRound = bcubeAllocationRegistry[_msgSender()].allocatedBcubePublicRound.add(a2);
       return total;
     }
   }
