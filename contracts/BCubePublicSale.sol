@@ -19,8 +19,9 @@ contract BCubePublicSale is WhitelistedRole {
   /// @param currentAllowance this allowance is in 4 stages tracked by currentAllowance
   /// @param shareWithdrawn tracks the amount of BCUBE already withdrawn from treasury
   /// @param dollarUnitsPayed 1 dollar = 100,000,000 dollar units. This tracks dollar units payed by user to this contract
-  /// @param allocatedBcubePreICO amount of BCUBE allocated to this user during the Pre-ICO stage
-  /// @param allocatedBcubeICO amount of BCUBE allocated to this user during the ICO stage
+  /// @param allocatedBcubePrivateRound amount of BCUBE allocated to this user during the Public Round stage
+  /// @param allocatedBcubePublicRound amount of BCUBE allocated to this user during the Private Round stage
+  /// @param allocatedBcubePrivateAllocation amount of BCUBE allocated in a private allocation
   struct UserInfo {
     uint256 dollarUnitsPayed;
     uint256 allocatedBcubePrivateAllocation;

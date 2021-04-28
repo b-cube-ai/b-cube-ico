@@ -68,32 +68,82 @@ contract PublicSaleTreasury is BCubePublicSale {
         listingTime = _startTime;
         emit LogListingTimeChange(prevListingTime, listingTime);
     }
+
+    function calcAllowance(address _who, uint256 _when) public view returns(uint256) {
+        uint256 allowance;
+        uint256 increasePrivate = bcubeAllocationRegistry[_who]
+            .allocatedBcubePrivateAllocation.div(16)
+            .add(
+                bcubeAllocationRegistry[_who].allocatedBcubePrivateRound.div(16)
+            );
+        uint256 increasePublic = bcubeAllocationRegistry[_who].allocatedBcubePublicRound.div(12);
+        if (_when >= listingTime + 15 weeks) {
+            // 100% of Pivate Round tokens + 100% of Public Round tokens
+            allowance = bcubeAllocationRegistry[_who].allocatedBcubePrivateAllocation
+                .add(bcubeAllocationRegistry[_who].allocatedBcubePrivateRound)
+                .add(bcubeAllocationRegistry[_who].allocatedBcubePublicRound);
+        } else if (_when >= listingTime + 14 weeks) {
+            // 15 * 6.25% of Pivate Round tokens + 100% of Public Round tokens
+            allowance = increasePrivate.mul(15).add(bcubeAllocationRegistry[_who].allocatedBcubePublicRound);
+        } else if (_when >= listingTime + 13 weeks) {
+            // 14 * 6.25% of Pivate Round tokens + 100% of Public Round tokens
+            allowance = increasePrivate.mul(14).add(bcubeAllocationRegistry[_who].allocatedBcubePublicRound);
+        } else if (_when >= listingTime + 12 weeks) {
+            // 13 * 6.25% of Pivate Round tokens + 100% of Public Round tokens
+            allowance = increasePrivate.mul(13).add(bcubeAllocationRegistry[_who].allocatedBcubePublicRound);
+        } else if (_when >= listingTime + 11 weeks) {
+            // 12 * 6.25% of Pivate Round tokens + 100% of Public Round tokens
+            allowance = increasePrivate.mul(12).add(bcubeAllocationRegistry[_who].allocatedBcubePublicRound);
+        } else if (_when >= listingTime + 10 weeks) {
+            // 11 * 6.25% of Pivate Round tokens + 11 * 8.33% of Public Round tokens
+            allowance = increasePrivate.mul(11).add(increasePublic.mul(11));
+        } else if (_when >= listingTime + 9 weeks) {
+            // 10 * 6.25% of Pivate Round tokens + 10 * 8.33% of Public Round tokens
+            allowance = increasePrivate.mul(10).add(increasePublic.mul(10));
+        } else if (_when >= listingTime + 8 weeks) {
+            // 9 * 6.25% of Pivate Round tokens + 9 * 8.33% of Public Round tokens
+            allowance = increasePrivate.mul(9).add(increasePublic.mul(9));
+        } else if (_when >= listingTime + 7 weeks) {
+            // 8 * 6.25% of Pivate Round tokens + 8 * 8.33% of Public Round tokens
+            allowance = increasePrivate.mul(8).add(increasePublic.mul(8));
+        } else if (_when >= listingTime + 6 weeks) {
+            // 7 * 6.25% of Pivate Round tokens + 7 * 8.33% of Public Round tokens
+            allowance = increasePrivate.mul(7).add(increasePublic.mul(7));
+        } else if (_when >= listingTime + 5 weeks) {
+            // 6 * 6.25% of Pivate Round tokens + 6 * 8.33% of Public Round tokens
+            allowance = increasePrivate.mul(6).add(increasePublic.mul(6));
+        } else if (_when >= listingTime + 4 weeks) {
+            // 5 * 6.25% of Pivate Round tokens + 5 * 8.33% of Public Round tokens
+            allowance = increasePrivate.mul(5).add(increasePublic.mul(5));
+        } else if (_when >= listingTime + 3 weeks) {
+            // 4 * 6.25% of Pivate Round tokens + 4 * 8.33% of Public Round tokens
+            allowance = increasePrivate.mul(4).add(increasePublic.mul(4));
+        } else if (_when >= listingTime + 2 weeks) {
+            // 3 * 6.25% of Pivate Round tokens + 3 * 8.33% of Public Round tokens
+            allowance = increasePrivate.mul(3).add(increasePublic.mul(3));
+        } else if (_when >= listingTime + 1 weeks) {
+            // 2 * 6.25% of Pivate Round tokens + 2 * 8.33% of Public Round tokens
+            allowance = increasePrivate.mul(2).add(increasePublic.mul(2));
+        } else if (_when >= listingTime) {
+            // 6.25% of Pivate Round tokens + 8.33% of Public Round tokens
+            allowance = increasePrivate.add(increasePublic);
+        }
+        return allowance;
+    }
     
     /// @dev allows public sale participants to withdraw their allocated share of
-    function publicSaleShareWithdraw(uint256 bcubeAmount)
+    function shareWithdraw(uint256 bcubeAmount)
         external
         onlyAfterListing
     {
         require(
-            bcubeAllocationRegistry[_msgSender()].allocatedBcubePreICO > 0 || bcubeAllocationRegistry[_msgSender()].allocatedBcubeICO > 0,
-            "!publicSaleParticipant || 0 BCUBE allocated"
+            bcubeAllocationRegistry[_msgSender()].allocatedBcubePrivateAllocation > 0
+            || bcubeAllocationRegistry[_msgSender()].allocatedBcubePrivateRound > 0
+            || bcubeAllocationRegistry[_msgSender()].allocatedBcubePublicRound > 0,
+            "!saleParticipant || 0 BCUBE allocated"
         );
-        uint256 allowance;
-        uint256 increasePreICO = bcubeAllocationRegistry[_msgSender()].allocatedBcubePreICO.div(4);
-        uint256 increaseICO = bcubeAllocationRegistry[_msgSender()].allocatedBcubeICO.div(4);
-        if (now >= listingTime + 90 days) {
-            // From listing date + 90 days: public sale participants can withdraw 100% of Pre-ICO tokens & 100% of ICO tokens
-            allowance = increasePreICO.mul(4).add(increaseICO.mul(4));
-        } else if (now >= listingTime + 60 days) {
-            // From listing date + 60 days: public sale participants can withdraw  75% of Pre-ICO tokens & 100% of ICO tokens
-            allowance = increasePreICO.mul(3).add(increaseICO.mul(4));
-        } else if (now >= listingTime + 30 days) {
-            // From listing date + 30 days: public sale participants can withdraw  50% of Pre-ICO tokens &  75% of ICO tokens
-            allowance = increasePreICO.mul(2).add(increaseICO.mul(3));
-        } else {
-            // From listing date: public sale participants can withdraw            25% of Pre-ICO tokens &  50% of ICO tokens
-            allowance = increasePreICO.add(increaseICO.mul(2));
-        }
+        
+        uint256 allowance = calcAllowance(_msgSender(), now);
         if (allowance != bcubeAllocationRegistry[_msgSender()].currentAllowance)
             bcubeAllocationRegistry[_msgSender()].currentAllowance = allowance;
 
