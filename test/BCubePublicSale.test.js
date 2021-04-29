@@ -322,9 +322,9 @@ describe("BCUBE Public Sale tests", async function () {
       from: adminWallet,
     });
 
-    // 1.5m tokens available in Private round, 3 investiments of 60kUSD for a total of 1.2m tokens
+    // 0.833333333m tokens available in Private round, 3 investiments of 40500 USD for a total of 810000 tokens
     const usdtPrice = new BigNumber(await publicSaleContract.methods.fetchUSDTPrice().call());
-    usdtAmtToBuyBcube = new BigNumber('60000').times(new BigNumber("1e8")).div(usdtPrice); // 60kUSD
+    usdtAmtToBuyBcube = new BigNumber('40500').times(new BigNumber("1e8")).div(usdtPrice);
 
     // approve & mint 60kUSDT for account1/2/3
     for (const account of [account1, account2, account3]) {
@@ -347,16 +347,16 @@ describe("BCUBE Public Sale tests", async function () {
     const account2alloc = await publicSaleContract.methods.bcubeAllocationRegistry(account2).call();
     expect(
       new BigNumber(account2alloc.allocatedBcubePrivateRound).div(new BigNumber("1e18")).toFixed(0)
-    ).to.equal(new BigNumber(60000).times(100).div(15).toFixed(0));
+    ).to.equal(new BigNumber(40500).times(100).div(15).toFixed(0));
     expect(
       new BigNumber(account2alloc.dollarUnitsPayed).div(1e9).toFixed(0),
-      '60000'
+      '40500'
     );
 
     const netSoldBcube = await publicSaleContract.methods.netSoldBcube().call();
     expect(
       new BigNumber(netSoldBcube).div(new BigNumber("1e18")).toFixed(0)
-    ).to.equal(new BigNumber('1700000').toFixed(0));
+    ).to.equal(new BigNumber('1310000').toFixed(0));
   });
 
   it("tests previous buy, checking team's _wallet()", async function () {
@@ -368,14 +368,14 @@ describe("BCUBE Public Sale tests", async function () {
   });
 
   it("boundary buys $BCUBE @ $0.15 calling buyBcubeUsingETH(), checking allocation", async function () {
-    // 300000 tokens available in Private Round
+    // 23333 tokens available in Private Round
     const account = accounts[9];
     
     await publicSaleContract.methods.addWhitelisted(account).send({
       from: adminWallet,
     });
 
-    const ethDollars = new BigNumber(45000 + 60000); // 45kUSD (300k token @ $0.15) + 60kUSD (300k token @ 0.20)
+    const ethDollars = new BigNumber(3499.95 + 60000); // 3499,95 USD (23333 token @ $0.15) + 60kUSD (300k token @ 0.20)
     const ethPrice = new BigNumber(await publicSaleContract.methods.fetchETHPrice().call());
     ethToBuyBcube = ethDollars.times(1e8).div(ethPrice).toNumber();
 
@@ -390,13 +390,36 @@ describe("BCUBE Public Sale tests", async function () {
     expect(
       new BigNumber(allocation.allocatedBcubePrivateRound).div(new BigNumber("1e18")).toFixed(0)
     ).to.equal(
-      '300000'
+      '23333'
     );
     expect(
       new BigNumber(allocation.allocatedBcubePublicRound).div(new BigNumber("1e18")).toFixed(0)
     ).to.equal(
       '300000'
     );
+
+    let eth = new BigNumber(50000).times(1e8).div(ethPrice);
+    await publicSaleContract.methods.buyBcubeUsingETH().send({
+      from: account,
+      value: web3.utils.toWei(eth.toNumber().toString(), "ether"),
+      gasLimit: 6000000,
+    });
+    ethToBuyBcube = new BigNumber(ethToBuyBcube).plus(eth);
+
+    await publicSaleContract.methods.buyBcubeUsingETH().send({
+      from: account,
+      value: web3.utils.toWei(eth.toNumber().toString(), "ether"),
+      gasLimit: 6000000,
+    });
+    ethToBuyBcube = new BigNumber(ethToBuyBcube).plus(eth);
+
+    eth = new BigNumber(33333.4).times(1e8).div(ethPrice);
+    await publicSaleContract.methods.buyBcubeUsingETH().send({
+      from: account,
+      value: web3.utils.toWei(eth.toNumber().toString(), "ether"),
+      gasLimit: 6000000,
+    });
+    ethToBuyBcube = new BigNumber(ethToBuyBcube).plus(eth);    
 
     const netSoldBcube = await publicSaleContract.methods.netSoldBcube().call();
     expect(
@@ -557,7 +580,7 @@ describe("BCUBE Public Sale tests", async function () {
   });
 
   it("reverts for Hard cap exceeded", async function () {
-    // Currently, 3.65m tokens sold. Hard cap is 2m + 4.25m = 6.25m. Remaing tokens = 2.6m
+    // Currently, 3.65m tokens sold. Hard cap is 1.333333333m + 4.75m = 6.08333333m. Remaing tokens = 2.43333333m
 
     const account1 = accounts[16];
     const account2 = accounts[17];
@@ -570,10 +593,9 @@ describe("BCUBE Public Sale tests", async function () {
     const account9 = accounts[24];
     const account10 = accounts[25];
     const account11 = accounts[26];
-    const account12 = accounts[27];
 
     const testAccounts = [
-      account1, account2, account3, account4, account5, account6, account7, account8, account9, account10, account11,
+      account1, account2, account3, account4, account5, account6, account7, account8, account9, account10
     ];
 
     const ethDollars = new BigNumber(45000); // 45kUSD
@@ -595,24 +617,24 @@ describe("BCUBE Public Sale tests", async function () {
     const netSoldBcube = await publicSaleContract.methods.netSoldBcube().call();
     expect(
       new BigNumber(netSoldBcube).div(new BigNumber("1e18")).toFixed(0)
-    ).to.equal(new BigNumber('6125000').toFixed(0));
+    ).to.equal(new BigNumber('5900000').toFixed(0));
 
-    await publicSaleContract.methods.addWhitelisted(account12).send({
+    await publicSaleContract.methods.addWhitelisted(account11).send({
       from: adminWallet,
     });
 
     await truffleAssert.reverts(
       publicSaleContract.methods.buyBcubeUsingETH().send({
-        from: account12,
+        from: account11,
         value: web3.utils.toWei(ethToBuyBcube.toString(), "ether"),
         gasLimit: new BigNumber("1000000")
       }),
       "BCubePublicSale: Hard cap exceeded"
     );
 
-    ethToBuyBcube = new BigNumber(25000).times(1e8).div(ethPrice).toNumber();
+    ethToBuyBcube = new BigNumber(36666).times(1e8).div(ethPrice).toNumber();
     await publicSaleContract.methods.buyBcubeUsingETH().send({
-      from: account12,
+      from: account11,
       value: web3.utils.toWei(ethToBuyBcube.toString(), "ether"),
       gasLimit: new BigNumber("1000000")
     });
@@ -620,7 +642,7 @@ describe("BCUBE Public Sale tests", async function () {
     ethToBuyBcube = new BigNumber(1000).times(1e8).div(ethPrice).toNumber();
     await truffleAssert.reverts(
       publicSaleContract.methods.buyBcubeUsingETH().send({
-        from: account12,
+        from: account11,
         value: web3.utils.toWei(ethToBuyBcube.toString(), "ether"),
         gasLimit: new BigNumber("1000000")
       }),
@@ -631,11 +653,10 @@ describe("BCUBE Public Sale tests", async function () {
   it("admin can decrease the reserve of bcube for launchpad", async function () {
     const currentHardcap = await publicSaleContract.methods.currentHardcap().call();
     expect(
-      new BigNumber(currentHardcap).div(new BigNumber('1e18')).toFixed(0),
-      '6250000' // 2mo (private round) + 4.52m (public round)
-    );
+      new BigNumber(currentHardcap).div(new BigNumber('1e18')).toFixed(0)
+    ).to.equal('6083333'); 
 
-    const newReserve = new BigNumber('2000000').times(new BigNumber('1e18')); // Launchpad reserve of 2m = 750 000 new tokens for the Public sale!
+    const newReserve = new BigNumber('2000000').times(new BigNumber('1e18')); // Launchpad reserve of 2m = 250 000 new tokens for the Public sale!
 
     await truffleAssert.reverts(
       publicSaleContract.methods.decreaseLaunchpadReservedBcube(newReserve).send({
@@ -660,22 +681,21 @@ describe("BCUBE Public Sale tests", async function () {
 
     const newHardcap = new BigNumber(await publicSaleContract.methods.currentHardcap().call());
     expect(
-      new BigNumber(newHardcap).div(new BigNumber('1e18')).toFixed(0),
-      new BigNumber(currentHardcap).plus(new BigNumber('750000')).toFixed(0),
+      new BigNumber(newHardcap).div(new BigNumber('1e18')).toFixed(0)
+    ).to.equal(
+      new BigNumber(currentHardcap).plus(new BigNumber('250000').times(new BigNumber('1e18'))).div(new BigNumber('1e18')).toFixed(0),
     );
   });
 
   it("user can buy new tokens", async function () {
     const account1 = accounts[28];
     const account2 = accounts[29];
-    const account3 = accounts[30];
-    const account4 = accounts[31];;
     
     const ethDollars = new BigNumber(45000); // 45kUSD
     const ethPrice = new BigNumber(await publicSaleContract.methods.fetchETHPrice().call());
     ethToBuyBcube = ethDollars.times(1e8).div(ethPrice).toNumber();
     
-    for (const account of [account1, account2, account3]) {
+    for (const account of [account1]) {
       await publicSaleContract.methods.addWhitelisted(account).send({
         from: adminWallet,
       });
@@ -690,24 +710,24 @@ describe("BCUBE Public Sale tests", async function () {
     const netSoldBcube = await publicSaleContract.methods.netSoldBcube().call();
     expect(
       new BigNumber(netSoldBcube).div(new BigNumber("1e18")).toFixed(0)
-    ).to.equal(new BigNumber('6925000').toFixed(0));
+    ).to.equal(new BigNumber('6308330').toFixed(0));
 
-    await publicSaleContract.methods.addWhitelisted(account4).send({
+    await publicSaleContract.methods.addWhitelisted(account2).send({
       from: adminWallet,
     });
 
     await truffleAssert.reverts(
       publicSaleContract.methods.buyBcubeUsingETH().send({
-        from: account4,
+        from: account2,
         value: web3.utils.toWei(ethToBuyBcube.toString(), "ether"),
         gasLimit: new BigNumber("1000000")
       }),
       "BCubePublicSale: Hard cap exceeded"
     );
 
-    ethToBuyBcube = new BigNumber(15000).times(1e8).div(ethPrice).toNumber();
+    ethToBuyBcube = new BigNumber(5000).times(1e8).div(ethPrice).toNumber();
     await publicSaleContract.methods.buyBcubeUsingETH().send({
-      from: account4,
+      from: account2,
       value: web3.utils.toWei(ethToBuyBcube.toString(), "ether"),
       gasLimit: new BigNumber("1000000")
     });
@@ -715,7 +735,7 @@ describe("BCUBE Public Sale tests", async function () {
     ethToBuyBcube = new BigNumber(1000).times(1e8).div(ethPrice).toNumber();
     await truffleAssert.reverts(
       publicSaleContract.methods.buyBcubeUsingETH().send({
-        from: account4,
+        from: account2,
         value: web3.utils.toWei(ethToBuyBcube.toString(), "ether"),
         gasLimit: new BigNumber("1000000")
       }),
@@ -725,7 +745,7 @@ describe("BCUBE Public Sale tests", async function () {
     const finalSoldBcube = await publicSaleContract.methods.netSoldBcube().call();
     expect(
       new BigNumber(finalSoldBcube).div(new BigNumber("1e18")).toFixed(0)
-    ).to.equal(new BigNumber('7000000').toFixed(0));
+    ).to.equal(new BigNumber('6333330').toFixed(0));
   });
 
   it("admin can define private round allocation up to PRIVATE_ALLOCATION_CAP", async function () {
@@ -743,7 +763,7 @@ describe("BCUBE Public Sale tests", async function () {
     );
 
     await truffleAssert.reverts(
-      publicSaleContract.methods.setPrivateAllocation(account1, new BigNumber('6000001').times(new BigNumber('1e18'))).send({
+      publicSaleContract.methods.setPrivateAllocation(account1, new BigNumber('6666667').times(new BigNumber('1e18'))).send({
         from: adminWallet,
         gasLimit: new BigNumber("1000000")
       }),
@@ -751,7 +771,7 @@ describe("BCUBE Public Sale tests", async function () {
     );
 
     for (const account of [account1, account2, account3]) {
-      const toBeAllocated = new BigNumber('2000000').times(new BigNumber('1e18'));
+      const toBeAllocated = new BigNumber('2222222').times(new BigNumber('1e18'));
       await publicSaleContract.methods.setPrivateAllocation(account, toBeAllocated.toFixed(0)).send({
         from: adminWallet,
         gasLimit: new BigNumber("1000000")

@@ -12,140 +12,213 @@ const timeMachine = require("ganache-time-traveler");
 
 describe("Treasury tests without private sale", async function () {
   this.timeout(3600000);
-  let snapshot,
-    snapshotId,
-    openingTime,
+  let snapshotId,
+
     closingTime,
-    currentTimestamp,
-    usdt,
-    psTreasury,
+
+    accounts,
     deployerWallet,
     adminWallet,
-    teamWallet;
+    teamWallet,
+
+    investor1,
+    investor2,
+    investor3,
+    investor4,
+    investor5,
+    investor6,
+    
+    bcubeToken,
+    publicTreasury,
+    
+    bcubeTokenContract,
+    publicTreasuryContract;
+
+  const allocations = {
+    'investor1': {
+      private: new BigNumber('1000000').times(new BigNumber('1e18')),
+      public: new BigNumber('0').times(new BigNumber('1e18')),
+      alloc: new BigNumber('0').times(new BigNumber('1e18')),
+    },
+    'investor2': {
+      private: new BigNumber('0').times(new BigNumber('1e18')),
+      public: new BigNumber('100000').times(new BigNumber('1e18')),
+      alloc: new BigNumber('0').times(new BigNumber('1e18')),
+    },
+    'investor3': {
+      private: new BigNumber('0').times(new BigNumber('1e18')),
+      public: new BigNumber('300000').times(new BigNumber('1e18')),
+      alloc: new BigNumber('0').times(new BigNumber('1e18')),
+    },
+    'investor4': {
+      private: new BigNumber('0').times(new BigNumber('1e18')),
+      public: new BigNumber('0').times(new BigNumber('1e18')),
+      alloc: new BigNumber('0').times(new BigNumber('1e18')),
+    },
+    'investor5': {
+      private: new BigNumber('333333').times(new BigNumber('1e18')),
+      public: new BigNumber('475000').times(new BigNumber('1e18')),
+      alloc: new BigNumber('300000').times(new BigNumber('1e18')),
+    },
+    'investor6': {
+      private: new BigNumber('0').times(new BigNumber('1e18')),
+      public: new BigNumber('0').times(new BigNumber('1e18')),
+      alloc: new BigNumber('500000').times(new BigNumber('1e18')),
+    },
+  };
   before(async function () {
-    snapshot = await timeMachine.takeSnapshot();
+    const snapshot = await timeMachine.takeSnapshot();
     snapshotId = snapshot["result"];
-    currentTimestamp = Math.floor(Date.now() / 1000);
+    const currentTimestamp = Math.floor(Date.now() / 1000);
     // 26 days from today
-    openingTime = currentTimestamp + 2246400;
+    const openingTime = currentTimestamp + 2246400;
     closingTime = openingTime + 6912000;
-    listingTime = closingTime + 6912000;
+    const listingTime = closingTime + 6912000;
     accounts = await web3.eth.getAccounts();
     deployerWallet = accounts[0];
     adminWallet = accounts[1];
     teamWallet = accounts[2];
-    bcubeDeployed = await BCUBEToken.new(
+
+    investor1 = accounts[3];
+    investor2 = accounts[4];
+    investor3 = accounts[5];
+    investor4 = accounts[6];
+    investor5 = accounts[7];
+    investor6 = accounts[8];
+
+    bcubeToken = await BCUBEToken.new(
       "b-cube.ai Token",
       "BCUBE",
       "18",
-      "0",
+      "1000000000000000000000",
       "50000000000000000000000000"
     );
-    bcubePrivateSaleDeployed = await BCubePrivateSale.new(
+    privateSale = await BCubePrivateSale.new(
       teamWallet,
-      bcubeDeployed.address,
+      bcubeToken.address,
       openingTime,
       closingTime,
       "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
       "0xEe9F2375b4bdF6387aa8265dD4FB8F16512A1d46",
       "0xdAC17F958D2ee523a2206206994597C13D831ec7"
     );
-    treasuryDeployed = await PublicSaleTreasury.new(
+    publicTreasury = await PublicSaleTreasury.new(
       teamWallet,
       adminWallet,
-      bcubeDeployed.address,
+      bcubeToken.address,
       openingTime,
       closingTime,
       "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
       "0xEe9F2375b4bdF6387aa8265dD4FB8F16512A1d46",
       "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-      bcubePrivateSaleDeployed.address,
+      privateSale.address,
       listingTime
     );
-    CONSTANTS.TOKEN_ADDRESS = bcubeDeployed.address;
-    CONSTANTS.PUBLIC_SALE_TREASURY_ADDRESS = treasuryDeployed.address;
-    bcube = new web3.eth.Contract(CONSTANTS.TOKEN_ABI, CONSTANTS.TOKEN_ADDRESS);
-    psTreasury = new web3.eth.Contract(
-      CONSTANTS.PUBLIC_SALE_TREASURY_ABI,
-      CONSTANTS.PUBLIC_SALE_TREASURY_ADDRESS
-    );
-    usdt = new web3.eth.Contract(
+    bcubeTokenContract = new web3.eth.Contract(CONSTANTS.TOKEN_ABI, bcubeToken.address);
+    privateSaleContract = new web3.eth.Contract(CONSTANTS.BPS_ABI, privateSale.address);
+    publicTreasuryContract = new web3.eth.Contract(CONSTANTS.PUBLIC_SALE_TREASURY_ABI, publicTreasury.address);
+    
+    usdtContract = new web3.eth.Contract(
       CONSTANTS.TETHER_ABI,
       CONSTANTS.TETHER_ADDRESS
     );
-    await bcube.methods
-      .mint(CONSTANTS.PUBLIC_SALE_TREASURY_ADDRESS, "15000000000000000000000000")
-      .send({
-        from: deployerWallet,
-      });
-    console.log(
-      "TREASURY_BCUBE",
-      await bcube.methods.balanceOf(CONSTANTS.PUBLIC_SALE_TREASURY_ADDRESS).call()
-    );
 
-    await usdt.methods.issue("10000000000000").send({
+    await web3.eth.sendTransaction({
+      from: accounts[23],
+      to: "0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828",
+      value: web3.utils.toWei("5", "ether"),
+    });
+
+    await usdtContract.methods.issue("10000000000000").send({
       from: "0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828",
     });
-    for (let i = 5; i <= 19; i++) {
-      await psTreasury.methods.addWhitelisted(accounts[i]).send({
+
+
+    for (const account of [investor1, investor2, investor3, investor4, investor5, investor6]) {
+      await publicTreasuryContract.methods.addWhitelisted(account).send({
         from: adminWallet,
       });
     }
-    await timeMachine.advanceTimeAndBlock(2246400);
-    ethPrice = new BigNumber(
-      await psTreasury.methods.fetchETHPrice().call()
-    ).toNumber();
-    usdtPrice = new BigNumber(await psTreasury.methods.fetchUSDTPrice().call());
-    await usdt.methods
-      .approve(CONSTANTS.PUBLIC_SALE_TREASURY_ADDRESS, "1000000000000")
+
+    await publicTreasuryContract.methods.setPrivateAllocation(investor5, new BigNumber('300000').times(new BigNumber('1e18'))).send({
+      from: adminWallet,
+    });
+
+    await publicTreasuryContract.methods.setPrivateAllocation(investor6, new BigNumber('500000').times(new BigNumber('1e18'))).send({
+      from: adminWallet,
+    });
+
+    await timeMachine.advanceTimeAndBlock(2246400 + 10000);
+
+    const investInUSDT = async (from, amount) => {
+      const usdtPrice = new BigNumber(await publicTreasuryContract.methods.fetchUSDTPrice().call());
+      const usdtAmtToBuyBcube = new BigNumber(amount).times(new BigNumber("1e8")).div(usdtPrice);
+    
+      // approve & mint
+      await usdtContract.methods.approve(publicTreasury.address, usdtAmtToBuyBcube.times(new BigNumber("1e6")).toFixed(0)).send({
+        from: from,
+      });
+      await usdtContract.methods.transfer(from, usdtAmtToBuyBcube.times(new BigNumber("1e6")).toFixed(0)).send({
+        from: "0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828",
+      });
+      
+      await publicTreasuryContract.methods.buyBcubeUsingUSDT(usdtAmtToBuyBcube.times(new BigNumber('1e6')).toFixed(0)).send({
+        from: from,
+        gasLimit: new BigNumber("1000000"),
+      });
+    };
+
+    await investInUSDT(investor1, 150000);
+    //await investInUSDT(investor3, 135000);
+    await investInUSDT(investor5, 145000);
+    await investInUSDT(investor2, 20000);
+    await investInUSDT(investor3, 30000);
+    await investInUSDT(investor3, 30000);
+
+
+    await bcubeTokenContract.methods
+      .mint(publicTreasury.address, "15000000000000000000000000")
       .send({
-        from: accounts[8],
+        from: deployerWallet,
       });
-    await usdt.methods.transfer(accounts[8], "31000000000").send({
-      from: "0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828",
-    });
-    for (let i = 5; i <= 15; i++) {
-      await psTreasury.methods.buyBcubeUsingETH().send({
-        from: accounts[i],
-        value: web3.utils.toWei((10000000000000 / ethPrice).toString(), "ether"),
-        gasLimit: 6000000,
-      });
-    }
-    await psTreasury.methods.buyBcubeUsingETH().send({
-      from: accounts[16],
-      value: web3.utils.toWei((600000000000 / ethPrice).toString(), "ether"),
-      gasLimit: 6000000,
-    });
-    for (let i = 17; i <= 19; i++) {
-      await psTreasury.methods.buyBcubeUsingETH().send({
-        from: accounts[i],
-        value: web3.utils.toWei((10000000000000 / ethPrice).toString(), "ether"),
-        gasLimit: 6000000,
-      });
-    }
-    alloc5 = await psTreasury.methods.bcubeAllocationRegistry(accounts[5]).call();
-    alloc6 = await psTreasury.methods.bcubeAllocationRegistry(accounts[6]).call();
-    alloc17 = await psTreasury.methods.bcubeAllocationRegistry(accounts[17]).call();
-    alloc18 = await psTreasury.methods.bcubeAllocationRegistry(accounts[18]).call();
-    for (let i = 5; i <= 19; i++) {
-      const alloc = await psTreasury.methods.bcubeAllocationRegistry(accounts[i]).call();
-      console.log(
-        "[" + i + "]",
-        'PreICO',
-        new BigNumber((alloc.allocatedBcubePreICO)).div(1e18).toFixed(0),
-        'ICO',
-        new BigNumber((alloc.allocatedBcubeICO)).div(1e18).toFixed(0)
-      );
-    }
+    const bal = await bcubeTokenContract.methods.balanceOf(publicTreasury.address).call();
+    console.log(
+      "TREASURY_BCUBE",
+      new BigNumber(bal).div(new BigNumber('1e18')).toFixed(0)
+    );
   });
 
   after(async function () {
     await timeMachine.revertToSnapshot(snapshotId);
   });
 
+  it("validate allocations", async function () {
+    console.log('---------------------------------------------');
+    for (const [index, account] of [investor1, investor2, investor3, investor4, investor5, investor6].entries()) {
+      const allocation = await publicTreasuryContract.methods.bcubeAllocationRegistry(account).call();
+      console.log(`Investor ${index + 1}`)
+      console.log(`\tprivate allocation: ${new BigNumber(allocation.allocatedBcubePrivateAllocation).div(new BigNumber('1e18')).toFixed(0)}`)
+      console.log(`\tprivate round: ${new BigNumber(allocation.allocatedBcubePrivateRound).div(new BigNumber('1e18')).toFixed(0)}`)
+      console.log(`\tpublic round: ${new BigNumber(allocation.allocatedBcubePublicRound).div(new BigNumber('1e18')).toFixed(0)}`)
+
+      expect(
+        new BigNumber(allocation.allocatedBcubePrivateRound).div(new BigNumber('1e18')).toFixed(0),
+      ).to.be.equal(allocations[`investor${index+1}`].private.div(new BigNumber('1e18')).toFixed(0), `Invalid PRIVATE ROUND allocation for investor${index+1}`);
+
+      expect(
+        new BigNumber(allocation.allocatedBcubePrivateAllocation).div(new BigNumber('1e18')).toFixed(0),
+      ).to.be.equal(allocations[`investor${index+1}`].alloc.div(new BigNumber('1e18')).toFixed(0), `Invalid PRIVATE ALLOC allocation for investor${index+1}`);
+
+      expect(
+        new BigNumber(allocation.allocatedBcubePublicRound).div(new BigNumber('1e18')).toFixed(0),
+      ).to.be.equal(allocations[`investor${index+1}`].public.div(new BigNumber('1e18')).toFixed(0), `Invalid PUBLIC ROUND allocation for investor${index+1}`);
+    }
+    console.log('---------------------------------------------');
+  });
+
   it("reverts for non-whitelistAdmin calling setListingTime()", async function () {
     await truffleAssert.reverts(
-      psTreasury.methods.setListingTime(closingTime + 691200 + 86400).send({
+      publicTreasuryContract.methods.setListingTime(closingTime + 691200 + 86400).send({
         from: deployerWallet,
       }),
       "WhitelistAdminRole: caller does not have the WhitelistAdmin role"
@@ -153,20 +226,80 @@ describe("Treasury tests without private sale", async function () {
   });
 
   it("increases listingTime by 1 day", async function () {
-    await psTreasury.methods.setListingTime(closingTime + 691200 + 86400).send({
+    await publicTreasuryContract.methods.setListingTime(closingTime + 691200 + 86400).send({
       from: adminWallet,
     });
-    newLT = await psTreasury.methods.listingTime().call();
+    newLT = await publicTreasuryContract.methods.listingTime().call();
     expect(newLT).to.equal((closingTime + 691200 + 86400).toString());
   });
 
-  it("reverts for 5 calling publicSaleShareWithdraw() before listing", async function () {
+  it("reverts for investor5 calling shareWithdraw() before listing", async function () {
     await truffleAssert.reverts(
-      psTreasury.methods.publicSaleShareWithdraw(alloc5.allocatedBcubePreICO).send({
-        from: accounts[5],
+      publicTreasuryContract.methods.shareWithdraw(allocations.investor5.private.toFixed(0)).send({
+        from: investor5,
       }),
       "Only callable after listing"
     );
+  });
+
+  it("validate calcAllowance for investor5", async function () {
+    const oneWeek = 60 * 60 * 24 * 7;
+    const listingTime = new BigNumber(await publicTreasuryContract.methods.listingTime().call()).toNumber();
+
+    for (let week = 0; week <= 15; week++) {
+      const when = listingTime + (week * oneWeek);
+      const allowance = new BigNumber(await publicTreasuryContract.methods.calcAllowance(investor5, when).call()).div(new BigNumber('1e18')).toFixed(0);
+      switch(week) {
+        case 0:
+          expect(allowance).to.be.equal('79167', `Invalid allowance for week ${week}`);
+          break;
+        case 1:
+          expect(allowance).to.be.equal('158333', `Invalid allowance for week ${week}`);
+          break;
+        case 2:
+          expect(allowance).to.be.equal('237500', `Invalid allowance for week ${week}`);
+          break;
+        case 3:
+          expect(allowance).to.be.equal('316667', `Invalid allowance for week ${week}`);
+          break;
+        case 4:
+          expect(allowance).to.be.equal('395833', `Invalid allowance for week ${week}`);
+          break;
+        case 5:
+          expect(allowance).to.be.equal('475000', `Invalid allowance for week ${week}`);
+          break;
+        case 6:
+          expect(allowance).to.be.equal('554167', `Invalid allowance for week ${week}`);
+          break;
+        case 7:
+          expect(allowance).to.be.equal('633333', `Invalid allowance for week ${week}`);
+          break;
+        case 8:
+          expect(allowance).to.be.equal('712500', `Invalid allowance for week ${week}`);
+          break;
+        case 9:
+          expect(allowance).to.be.equal('791667', `Invalid allowance for week ${week}`);
+          break;
+        case 10:
+          expect(allowance).to.be.equal('870833', `Invalid allowance for week ${week}`);
+          break;
+        case 11:
+          expect(allowance).to.be.equal('950000', `Invalid allowance for week ${week}`);
+          break;
+        case 12:
+          expect(allowance).to.be.equal('989583', `Invalid allowance for week ${week}`);
+          break;
+        case 13:
+          expect(allowance).to.be.equal('1029167', `Invalid allowance for week ${week}`);
+          break;
+        case 14:
+          expect(allowance).to.be.equal('1068750', `Invalid allowance for week ${week}`);
+          break;
+        case 15:
+          expect(allowance).to.be.equal('1108333', `Invalid allowance for week ${week}`);
+          break;
+      }
+    }
   });
 
   it("reverts for admin calling setListingTime() after listing", async function () {
@@ -174,7 +307,7 @@ describe("Treasury tests without private sale", async function () {
     await timeMachine.advanceTimeAndBlock(6912000 + 864000);
     
     await truffleAssert.reverts(
-      psTreasury.methods.setListingTime(closingTime + 691200 + 96400).send({
+      publicTreasuryContract.methods.setListingTime(closingTime + 691200 + 96400).send({
         from: adminWallet
       }),
       "listingTime unchangable after listing"
@@ -183,260 +316,162 @@ describe("Treasury tests without private sale", async function () {
 
   it("disallows 5 to withdraw all tokens after listing", async function () {
     await truffleAssert.reverts(
-      psTreasury.methods.publicSaleShareWithdraw(alloc5.allocatedBcubePreICO).send({
-        from: accounts[5],
+      publicTreasuryContract.methods.shareWithdraw(allocations.investor5.alloc.plus(allocations.investor5.private).plus(allocations.investor5.public).toFixed(0)).send({
+        from: investor5,
       }),
       "Insufficient allowance"
     );
   });
 
-  it("disallows 5 to withdraw 50% of Pre-ICO tokens after listing", async function () {
-    const withdraw = new BigNumber(alloc5.allocatedBcubePreICO).div(2).toFixed(0);
+  it("disallows 5 to withdraw 50% of Private Round tokens after listing", async function () {
+    const withdraw = new BigNumber(allocations.investor5.private).div(2).toFixed(0);
     await truffleAssert.reverts(
-      psTreasury.methods.publicSaleShareWithdraw(withdraw).send({
-        from: accounts[5],
+      publicTreasuryContract.methods.shareWithdraw(withdraw).send({
+        from: investor5,
         gasLimit: 6000000,
       }),
       "Insufficient allowance"
     );
   });
 
-  it("allows 5 to withdraw 25% of Pre-ICO tokens after listing", async function () {
-    const withdraw = new BigNumber(alloc5.allocatedBcubePreICO).div(4).toFixed(0,1);
-    await psTreasury.methods.publicSaleShareWithdraw(withdraw).send({
-      from: accounts[5],
-      gasLimit: 6000000,
-    });
-    bal = await bcube.methods.balanceOf(accounts[5]).call();
-    expect(bal.toString()).to.equal(withdraw);
-  });
-
-  it("disallows 18 to withdraw 100% of ICO tokens after listing", async function () {
-    const withdraw = new BigNumber(alloc18.allocatedBcubeICO).toFixed(0);
+  it("disallows 5 to withdraw 50% of Private Allocation tokens after listing", async function () {
+    const withdraw = new BigNumber(allocations.investor5.alloc).div(2).toFixed(0);
     await truffleAssert.reverts(
-      psTreasury.methods.publicSaleShareWithdraw(withdraw).send({
-        from: accounts[14],
+      publicTreasuryContract.methods.shareWithdraw(withdraw).send({
+        from: investor5,
         gasLimit: 6000000,
       }),
       "Insufficient allowance"
     );
   });
 
-  it("allows 18 to withdraw 50% of ICO tokens after listing", async function () {
-    const withdraw = new BigNumber(alloc18.allocatedBcubeICO).div(2).toFixed(0);
-    await psTreasury.methods.publicSaleShareWithdraw(withdraw).send({
-      from: accounts[18],
+  it("allows 5 to withdraw 6.25% of Private Round tokens after listing", async function () {
+    const initialBalance = new BigNumber(await bcubeTokenContract.methods.balanceOf(investor5).call()).div(new BigNumber('1e18')).toFixed(0);
+    const withdraw = new BigNumber('6250').times(new BigNumber('1e18')).toFixed(0);
+    await publicTreasuryContract.methods.shareWithdraw(withdraw).send({
+      from: investor5,
       gasLimit: 6000000,
     });
-    bal = await bcube.methods.balanceOf(accounts[18]).call();
-    expect(bal.toString()).to.equal(withdraw);
+
+    const bal = new BigNumber(await bcubeTokenContract.methods.balanceOf(investor5).call()).div(new BigNumber('1e18'));
+    expect(bal.minus(initialBalance).toFixed(0)).to.equal(new BigNumber(withdraw).div(new BigNumber('1e18')).toFixed(0));
   });
 
-  it("disallows non-participant to withdraw after listing", async function () {
-    await truffleAssert.reverts(
-      psTreasury.methods.publicSaleShareWithdraw("1000000000000000000").send({
-        from: accounts[20],
-        gasLimit: 6000000,
-      }),
-      "!publicSaleParticipant || 0 BCUBE allocated"
-    );
-  });
-
-  it("allows 17 to withdraw 25% of Pre-ICO + 50% of ICO tokens after listing", async function () {
-    const withdraw = new BigNumber(alloc17.allocatedBcubePreICO).div(4).plus(new BigNumber(alloc17.allocatedBcubeICO).div(2)).toFixed(0,1);
-    await psTreasury.methods.publicSaleShareWithdraw(withdraw).send({
-      from: accounts[17],
+  it("allows 5 to withdraw 6.25% of Private Allocation tokens after listing", async function () {
+    const initialBalance = new BigNumber(await bcubeTokenContract.methods.balanceOf(investor5).call()).div(new BigNumber('1e18')).toFixed(0);
+    const withdraw = new BigNumber('18750').times(new BigNumber('1e18')).toFixed(0);
+    await publicTreasuryContract.methods.shareWithdraw(withdraw).send({
+      from: investor5,
       gasLimit: 6000000,
     });
-    bal = await bcube.methods.balanceOf(accounts[17]).call();
-    expect(bal.toString()).to.equal(withdraw);
+
+    const bal = new BigNumber(await bcubeTokenContract.methods.balanceOf(investor5).call()).div(new BigNumber('1e18'));
+    expect(bal.minus(initialBalance).toFixed(0)).to.equal(new BigNumber(withdraw).div(new BigNumber('1e18')).toFixed(0));
   });
 
-  it("disallows 5 to withdraw all Pre-ICO tokens after listing + 31 days", async function () {
-    // 31 days after listing
-    await timeMachine.advanceTimeAndBlock(2678400);
-    const withdraw = new BigNumber(alloc5.allocatedBcubePreICO).div(4).times(3).toFixed(0);
-    await truffleAssert.reverts(
-        psTreasury.methods.publicSaleShareWithdraw(withdraw).send({
-        from: accounts[5],
-        gasLimit: 6000000,
-      }),
-      "Insufficient allowance"
-    );
-  });
-
-  it("disallows 5 to withdraw  75% Pre-ICO tokens after listing + 31 days", async function () {
-    const withdraw = new BigNumber(alloc5.allocatedBcubePreICO).div(4).times(2).toFixed(0);
-    await truffleAssert.reverts(
-        psTreasury.methods.publicSaleShareWithdraw(withdraw).send({
-        from: accounts[5],
-        gasLimit: 6000000,
-      }),
-      "Insufficient allowance"
-    );
-  });
-
-  it("allows 5 to withdraw 50% Pre-ICO tokens after listing + 31 days", async function () {
-    const withdraw = new BigNumber(alloc5.allocatedBcubePreICO).div(4).toFixed(0,1);
-    await psTreasury.methods.publicSaleShareWithdraw(withdraw).send({
-      from: accounts[5],
+  it("allows 5 to withdraw 8.33% of Public Round tokens after listing", async function () {
+    const initialBalance = new BigNumber(await bcubeTokenContract.methods.balanceOf(investor5).call()).div(new BigNumber('1e18')).toFixed(0);
+    const withdraw = new BigNumber('12499').times(new BigNumber('1e18')).toFixed(0);
+    await publicTreasuryContract.methods.shareWithdraw(withdraw).send({
+      from: investor5,
       gasLimit: 6000000,
     });
-    bal = await bcube.methods.balanceOf(accounts[5]).call();
-    expect(bal.toString()).to.equal(new BigNumber(withdraw).times(2).toFixed(0));
+    const bal = new BigNumber(await bcubeTokenContract.methods.balanceOf(investor5).call()).div(new BigNumber('1e18'));
+    expect(bal.minus(initialBalance).toFixed(0)).to.equal(new BigNumber(withdraw).div(new BigNumber('1e18')).toFixed(0));
   });
 
-  it("disallows 18 to withdraw all ICO tokens after listing + 31 days", async function () {
-    const withdraw = new BigNumber(alloc18.allocatedBcubeICO).toFixed(0);
-    await truffleAssert.reverts(
-        psTreasury.methods.publicSaleShareWithdraw(withdraw).send({
-        from: accounts[18],
-        gasLimit: 6000000,
-      }),
-      "Insufficient allowance"
-    );
-  });
-
-  it("allows 18 to withdraw 75% of ICO tokens after listing + 31 days", async function () {
-    const withdraw = new BigNumber(alloc18.allocatedBcubeICO).div(4).toFixed(0,1);
-    await psTreasury.methods.publicSaleShareWithdraw(withdraw).send({
-      from: accounts[18],
+  it("allows 5 to withdraw 6.25 of Private Round tokens after listing + 7 days", async function () {
+    // 7 days after listing
+    await timeMachine.advanceTimeAndBlock(60 * 60 * 24 * 7);
+    const initialBalance = new BigNumber(await bcubeTokenContract.methods.balanceOf(investor5).call()).div(new BigNumber('1e18')).toFixed(0);
+    const withdraw = new BigNumber('6250').times(new BigNumber('1e18')).toFixed(0);
+    await publicTreasuryContract.methods.shareWithdraw(withdraw).send({
+      from: investor5,
       gasLimit: 6000000,
     });
-    bal = await bcube.methods.balanceOf(accounts[18]).call();
-    expect(bal.toString()).to.equal(new BigNumber(withdraw).times(3).toFixed(0));
+
+    const bal = new BigNumber(await bcubeTokenContract.methods.balanceOf(investor5).call()).div(new BigNumber('1e18'));
+    expect(bal.minus(initialBalance).toFixed(0)).to.equal(new BigNumber(withdraw).div(new BigNumber('1e18')).toFixed(0));
   });
 
-  it("allows 17 to withdraw 50% of Pre-ICO + 75% of ICO tokens after listing + 31 days", async function () {
-    const withdraw = new BigNumber(alloc17.allocatedBcubePreICO).div(4).plus(new BigNumber(alloc17.allocatedBcubeICO).div(4)).toFixed(0,1);
-    await psTreasury.methods.publicSaleShareWithdraw(withdraw).send({
-      from: accounts[17],
+  it("allows 5 to withdraw 6.25% of Private Allocation tokens after listing + 7 days", async function () {
+    const initialBalance = new BigNumber(await bcubeTokenContract.methods.balanceOf(investor5).call()).div(new BigNumber('1e18')).toFixed(0);
+    const withdraw = new BigNumber('18750').times(new BigNumber('1e18')).toFixed(0);
+    await publicTreasuryContract.methods.shareWithdraw(withdraw).send({
+      from: investor5,
       gasLimit: 6000000,
     });
-    bal = await bcube.methods.balanceOf(accounts[17]).call();
-    expect(bal.toString()).to.equal(
-      new BigNumber(alloc17.allocatedBcubePreICO).div(2).plus(new BigNumber(alloc17.allocatedBcubeICO).div(4).times(3)).toFixed(0)
-    );
+
+    const bal = new BigNumber(await bcubeTokenContract.methods.balanceOf(investor5).call()).div(new BigNumber('1e18'));
+    expect(bal.minus(initialBalance).toFixed(0)).to.equal(new BigNumber(withdraw).div(new BigNumber('1e18')).toFixed(0));
   });
 
-  it("disallows 5 to withdraw all Pre-ICO tokens after listing + 31 days", async function () {
-    // 62 days after listing
-    await timeMachine.advanceTimeAndBlock(2678400);
-    const withdraw = new BigNumber(alloc5.allocatedBcubePreICO).div(4).times(2).toFixed(0);
-    await truffleAssert.reverts(
-        psTreasury.methods.publicSaleShareWithdraw(withdraw).send({
-        from: accounts[5],
-        gasLimit: 6000000,
-      }),
-      "Insufficient allowance"
-    );
-  });
-
-  it("allows 5 to withdraw 75% Pre-ICO tokens after listing + 62 days", async function () {
-    const withdraw = new BigNumber(alloc5.allocatedBcubePreICO).div(4).toFixed(0,1);
-    await psTreasury.methods.publicSaleShareWithdraw(withdraw).send({
-      from: accounts[5],
+  it("allows 5 to withdraw 8.33% of Public Round tokens after listing + 7 days", async function () {
+    const initialBalance = new BigNumber(await bcubeTokenContract.methods.balanceOf(investor5).call()).div(new BigNumber('1e18')).toFixed(0);
+    const withdraw = new BigNumber('12499').times(new BigNumber('1e18')).toFixed(0);
+    await publicTreasuryContract.methods.shareWithdraw(withdraw).send({
+      from: investor5,
       gasLimit: 6000000,
     });
-    bal = await bcube.methods.balanceOf(accounts[5]).call();
-    expect(bal.toString()).to.equal(new BigNumber(withdraw).times(3).toFixed(0));
+    const bal = new BigNumber(await bcubeTokenContract.methods.balanceOf(investor5).call()).div(new BigNumber('1e18'));
+    expect(bal.minus(initialBalance).toFixed(0)).to.equal(new BigNumber(withdraw).div(new BigNumber('1e18')).toFixed(0));
   });
 
-  it("allows 18 to withdraw 100% of ICO tokens after listing + 62 days", async function () {
-    const withdraw = new BigNumber(alloc18.allocatedBcubeICO).div(4).toFixed(0,1);
-    await psTreasury.methods.publicSaleShareWithdraw(withdraw).send({
-      from: accounts[18],
+  it("allows 5 to withdraw 6.25 of Private Round tokens after listing + 14 days", async function () {
+    // 7 days after listing
+    await timeMachine.advanceTimeAndBlock(60 * 60 * 24 * 7);
+    const initialBalance = new BigNumber(await bcubeTokenContract.methods.balanceOf(investor5).call()).div(new BigNumber('1e18')).toFixed(0);
+    const withdraw = new BigNumber('6250').times(new BigNumber('1e18')).toFixed(0);
+    await publicTreasuryContract.methods.shareWithdraw(withdraw).send({
+      from: investor5,
       gasLimit: 6000000,
     });
-    bal = await bcube.methods.balanceOf(accounts[18]).call();
-    expect(bal.toString()).to.equal(new BigNumber(alloc18.allocatedBcubeICO).toFixed(0));
+
+    const bal = new BigNumber(await bcubeTokenContract.methods.balanceOf(investor5).call()).div(new BigNumber('1e18'));
+    expect(bal.minus(initialBalance).toFixed(0)).to.equal(new BigNumber(withdraw).div(new BigNumber('1e18')).toFixed(0));
   });
 
-  it("allows 17 to withdraw 75% of Pre-ICO + 100% of ICO tokens after listing + 62 days", async function () {
-    const withdraw = new BigNumber(alloc17.allocatedBcubePreICO).div(4).plus(new BigNumber(alloc17.allocatedBcubeICO).div(4)).toFixed(0,1);
-    await psTreasury.methods.publicSaleShareWithdraw(withdraw).send({
-      from: accounts[17],
+  it("allows 5 to withdraw 6.25% of Private Allocation tokens after listing + 14 days", async function () {
+    const initialBalance = new BigNumber(await bcubeTokenContract.methods.balanceOf(investor5).call()).div(new BigNumber('1e18')).toFixed(0);
+    const withdraw = new BigNumber('18750').times(new BigNumber('1e18')).toFixed(0);
+    await publicTreasuryContract.methods.shareWithdraw(withdraw).send({
+      from: investor5,
       gasLimit: 6000000,
     });
-    bal = await bcube.methods.balanceOf(accounts[17]).call();
-    expect(bal.toString()).to.equal(
-      new BigNumber(alloc17.allocatedBcubePreICO).div(4).times(3).plus(new BigNumber(alloc17.allocatedBcubeICO)).toFixed(0)
-    );
+
+    const bal = new BigNumber(await bcubeTokenContract.methods.balanceOf(investor5).call()).div(new BigNumber('1e18'));
+    expect(bal.minus(initialBalance).toFixed(0)).to.equal(new BigNumber(withdraw).div(new BigNumber('1e18')).toFixed(0));
   });
 
-  it("allows 5 to withdraw all Pre-ICO tokens after listing + 93 days", async function () {
-    // 93 days after listing
-    await timeMachine.advanceTimeAndBlock(2678400);
-    const withdraw = new BigNumber(alloc5.allocatedBcubePreICO).div(4).toFixed(0,1);
-    await psTreasury.methods.publicSaleShareWithdraw(withdraw).send({
-      from: accounts[5],
+  it("allows 5 to withdraw 8.33% of Public Round tokens after listing + 14 days", async function () {
+    const initialBalance = new BigNumber(await bcubeTokenContract.methods.balanceOf(investor5).call()).div(new BigNumber('1e18')).toFixed(0);
+    const withdraw = new BigNumber('12499').times(new BigNumber('1e18')).toFixed(0);
+    await publicTreasuryContract.methods.shareWithdraw(withdraw).send({
+      from: investor5,
       gasLimit: 6000000,
     });
-    bal = await bcube.methods.balanceOf(accounts[5]).call();
-    expect(bal.toString()).to.equal(new BigNumber(alloc5.allocatedBcubePreICO).toFixed(0));
+    const bal = new BigNumber(await bcubeTokenContract.methods.balanceOf(investor5).call()).div(new BigNumber('1e18'));
+    expect(bal.minus(initialBalance).toFixed(0)).to.equal(new BigNumber(withdraw).div(new BigNumber('1e18')).toFixed(0));
   });
 
-  it("allows 17 to withdraw 100% of Pre-ICO + 100% of ICO tokens after listing + 93 days", async function () {
-    const withdraw = new BigNumber(alloc17.allocatedBcubePreICO).div(4).toFixed(0,1);
-    await psTreasury.methods.publicSaleShareWithdraw(withdraw).send({
-      from: accounts[17],
+  it("allows 3 to withdraw 100% of tokens after vesting period", async function () {
+    // 13 weeks after
+    await timeMachine.advanceTimeAndBlock(60 * 60 * 24 * 7 * 15);
+    const allocation = await publicTreasuryContract.methods.bcubeAllocationRegistry(investor3).call();
+    const withdraw = new BigNumber(allocation.allocatedBcubePrivateAllocation)
+      .plus(
+        new BigNumber(allocation.allocatedBcubePrivateRound)
+      )
+      .plus(
+        new BigNumber(allocation.allocatedBcubePublicRound)
+      );
+    await publicTreasuryContract.methods.shareWithdraw(withdraw.toFixed(0)).send({
+      from: investor3,
       gasLimit: 6000000,
     });
-    bal = await bcube.methods.balanceOf(accounts[17]).call();
-    expect(bal.toString()).to.equal(
-      new BigNumber(alloc17.allocatedBcubePreICO).plus(new BigNumber(alloc17.allocatedBcubeICO)).toFixed(0)
-    );
+
+    const bal = new BigNumber(await bcubeTokenContract.methods.balanceOf(investor3).call()).div(new BigNumber('1e18'));
+    expect(bal.toFixed(0)).to.equal('300000');
   });
 
-  it('allows 6 to withdraw 100% of Pre-ICO tokens after listing + 93 days', async function () {
-    const withdraw = new BigNumber(alloc6.allocatedBcubePreICO).toFixed(0);
-    await psTreasury.methods.publicSaleShareWithdraw(withdraw).send({
-      from: accounts[6],
-      gasLimit: 6000000,
-    });
-    bal = await bcube.methods.balanceOf(accounts[6]).call();
-    expect(bal.toString()).to.equal(
-      new BigNumber(alloc6.allocatedBcubePreICO).toFixed(0)
-    );
-  });
-
-  it("disallows 18 to withdraw more than 100%", async function () {
-    await truffleAssert.reverts(
-      psTreasury.methods.publicSaleShareWithdraw(1).send({
-        from: accounts[18],
-        gasLimit: 6000000,
-      }),
-      "Insufficient allowance"
-    );
-  });
-
-  it("disallows 17 to withdraw more than 100%", async function () {
-    await truffleAssert.reverts(
-      psTreasury.methods.publicSaleShareWithdraw(1).send({
-        from: accounts[17],
-        gasLimit: 6000000,
-      }),
-      "Insufficient allowance"
-    );
-  });
-
-  it("disallows 5 to withdraw more than 100%", async function () {
-    await truffleAssert.reverts(
-      psTreasury.methods.publicSaleShareWithdraw(1).send({
-        from: accounts[5],
-        gasLimit: 6000000,
-      }),
-      "Insufficient allowance"
-    );
-  });
-
-  it("disallows 6 to withdraw more than 100%", async function () {
-    await truffleAssert.reverts(
-      psTreasury.methods.publicSaleShareWithdraw(1).send({
-        from: accounts[6],
-        gasLimit: 6000000,
-      }),
-      "Insufficient allowance"
-    );
-  });
 });
