@@ -4,6 +4,7 @@ pragma solidity 0.5.17;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./BCubePublicSale.sol";
 
 /**
@@ -16,6 +17,11 @@ contract PublicSaleTreasury is BCubePublicSale {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
+    modifier onlyAfterListing() {
+        require(now >= listingTime, "Only callable after listing");
+        _;
+    }
+
     /// @notice timestamp at which BCUBE will be listed on CEXes/DEXes
     uint256 public listingTime;
 
@@ -26,11 +32,6 @@ contract PublicSaleTreasury is BCubePublicSale {
         address indexed participant,
         uint256 bcubeAmountWithdrawn
     );
-
-    modifier onlyAfterListing() {
-        require(now >= listingTime, "Only callable after listing");
-        _;
-    }
     
     constructor(
         address payable _wallet,
@@ -135,6 +136,7 @@ contract PublicSaleTreasury is BCubePublicSale {
     function shareWithdraw(uint256 bcubeAmount)
         external
         onlyAfterListing
+        nonReentrant
     {
         require(
             bcubeAllocationRegistry[_msgSender()].allocatedBcubePrivateAllocation > 0

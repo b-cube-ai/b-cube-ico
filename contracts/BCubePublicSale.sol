@@ -7,9 +7,10 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/access/roles/WhitelistedRole.sol";
 import "@openzeppelin/contracts/lifecycle/Pausable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@chainlink/contracts/src/v0.5/interfaces/AggregatorV3Interface.sol";
 
-contract BCubePublicSale is WhitelistedRole {
+contract BCubePublicSale is WhitelistedRole, ReentrancyGuard {
   using SafeMath for uint256;
   using SignedSafeMath for int256;
   using SafeCast for uint256;
@@ -18,7 +19,8 @@ contract BCubePublicSale is WhitelistedRole {
   /// @dev allowance is # of BCUBE each participant can withdraw from treasury.
   /// @param currentAllowance this allowance is in 4 stages tracked by currentAllowance
   /// @param shareWithdrawn tracks the amount of BCUBE already withdrawn from treasury
-  /// @param dollarUnitsPayed 1 dollar = 100,000,000 dollar units. This tracks dollar units payed by user to this contract
+  /// @param dollarUnitsPayed 1 dollar = 100,000,000 dollar units.
+  /// This tracks dollar units payed by user to this contract
   /// @param allocatedBcubePrivateRound amount of BCUBE allocated to this user during the Public Round stage
   /// @param allocatedBcubePublicRound amount of BCUBE allocated to this user during the Private Round stage
   /// @param allocatedBcubePrivateAllocation amount of BCUBE allocated in a private allocation
@@ -29,6 +31,28 @@ contract BCubePublicSale is WhitelistedRole {
     uint256 allocatedBcubePublicRound;
     uint256 currentAllowance;
     uint256 shareWithdrawn;
+  }
+
+  modifier onlyWhitelisted() {
+    require(
+      isWhitelisted(_msgSender()) || privateSaleWhitelisted.isWhitelisted(_msgSender()),
+      "BCubePublicSale: caller does not have the Whitelisted role"
+    );
+    _;
+  }
+
+  modifier onlyWhileOpen {
+    require(isOpen(), "BCubePublicSale: not open");
+    _;
+  }
+
+  /// @dev ensuring BCUBE allocations in public sale don't exceed 15m
+  modifier tokensRemaining() {
+    require(
+      netSoldBcube < currentHardcap(),
+      "BCubePublicSale: All tokens sold"
+    );
+    _;
   }
 
   mapping(address => UserInfo) public bcubeAllocationRegistry;
@@ -129,28 +153,6 @@ contract BCubePublicSale is WhitelistedRole {
     return HARD_CAP.sub(PRIVATE_ALLOCATION_CAP).sub(launchpadReservedBcube);
   }
 
-  modifier onlyWhitelisted() {
-    require(
-      isWhitelisted(_msgSender()) || privateSaleWhitelisted.isWhitelisted(_msgSender()),
-      "BCubePublicSale: caller does not have the Whitelisted role"
-    );
-    _;
-  }
-
-  modifier onlyWhileOpen {
-    require(isOpen(), "BCubePublicSale: not open");
-    _;
-  }
-
-  /// @dev ensuring BCUBE allocations in public sale don't exceed 15m
-  modifier tokensRemaining() {
-    require(
-      netSoldBcube < currentHardcap(),
-      "BCubePublicSale: All tokens sold"
-    );
-    _;
-  }
-
   function setPrivateAllocation(address _wallet, uint256 _allocation)
     external
     onlyWhitelistAdmin {
@@ -234,6 +236,7 @@ contract BCubePublicSale is WhitelistedRole {
     onlyWhitelisted
     onlyWhileOpen
     tokensRemaining
+    nonReentrant
   {
     uint256 allocation;
     uint256 ethPrice = uint256(fetchETHPrice());
@@ -251,6 +254,7 @@ contract BCubePublicSale is WhitelistedRole {
     onlyWhitelisted
     onlyWhileOpen
     tokensRemaining
+    nonReentrant
   {
     uint256 allocation;
     uint256 usdtPrice = uint256(fetchUSDTPrice());
@@ -298,13 +302,19 @@ contract BCubePublicSale is WhitelistedRole {
     bcubeAllocatedToUser = rate.mul(dollarUnits);
     finalAllocation = netSoldBcube.add(bcubeAllocatedToUser);
     require(finalAllocation <= current_hardcap, "BCubePublicSale: Hard cap exceeded");
-    bcubeAllocationRegistry[_msgSender()].dollarUnitsPayed = bcubeAllocationRegistry[_msgSender()].dollarUnitsPayed.add(dollarUnits);
+    bcubeAllocationRegistry[_msgSender()].dollarUnitsPayed = bcubeAllocationRegistry[_msgSender()]
+      .dollarUnitsPayed
+      .add(dollarUnits);
     if (finalAllocation <= stageCap) {
       netSoldBcube = finalAllocation;
       if (stage == 1) {
-        bcubeAllocationRegistry[_msgSender()].allocatedBcubePrivateRound = bcubeAllocationRegistry[_msgSender()].allocatedBcubePrivateRound.add(bcubeAllocatedToUser);
+        bcubeAllocationRegistry[_msgSender()].allocatedBcubePrivateRound = bcubeAllocationRegistry[_msgSender()]
+          .allocatedBcubePrivateRound
+          .add(bcubeAllocatedToUser);
       } else {
-        bcubeAllocationRegistry[_msgSender()].allocatedBcubePublicRound = bcubeAllocationRegistry[_msgSender()].allocatedBcubePublicRound.add(bcubeAllocatedToUser);
+        bcubeAllocationRegistry[_msgSender()].allocatedBcubePublicRound = bcubeAllocationRegistry[_msgSender()]
+          .allocatedBcubePublicRound
+          .add(bcubeAllocatedToUser);
       }
       return bcubeAllocatedToUser;
     } else {
@@ -312,12 +322,16 @@ contract BCubePublicSale is WhitelistedRole {
       a1 = stageCap.sub(netSoldBcube);
       dollarUnitsUnused = dollarUnits.sub(a1.div(rate));
       netSoldBcube = stageCap;
-      bcubeAllocationRegistry[_msgSender()].allocatedBcubePrivateRound = bcubeAllocationRegistry[_msgSender()].allocatedBcubePrivateRound.add(a1);
+      bcubeAllocationRegistry[_msgSender()].allocatedBcubePrivateRound = bcubeAllocationRegistry[_msgSender()]
+        .allocatedBcubePrivateRound
+        .add(a1);
       (rate, stage) = calcRate();
       a2 = dollarUnitsUnused.mul(rate);
       netSoldBcube = netSoldBcube.add(a2);
       total = a1.add(a2);
-      bcubeAllocationRegistry[_msgSender()].allocatedBcubePublicRound = bcubeAllocationRegistry[_msgSender()].allocatedBcubePublicRound.add(a2);
+      bcubeAllocationRegistry[_msgSender()].allocatedBcubePublicRound = bcubeAllocationRegistry[_msgSender()]
+        .allocatedBcubePublicRound
+        .add(a2);
       return total;
     }
   }
