@@ -288,16 +288,16 @@ contract BCubePublicSale is WhitelistedRole, ReentrancyGuard {
       dollarUnits >= 500e8,
       "BCubePublicSale: Minimal contribution is 500 USD"
     );
+    require(
+      dollarUnits <= 25000e8,
+      "BCubePublicSale: Maximal contribution is 25000 USD"
+    );  
     (rate, stage) = calcRate();
     uint256 current_hardcap = currentHardcap();
     if (stage == 1) {
       stageCap = 1333333333333333333333333;
     } else {
       stageCap = current_hardcap;
-      require(
-        dollarUnits <= 50000e8,
-        "BCubePublicSale: Maximal contribution is 50000 USD"
-      );  
     }
     bcubeAllocatedToUser = rate.mul(dollarUnits);
     finalAllocation = netSoldBcube.add(bcubeAllocatedToUser);
