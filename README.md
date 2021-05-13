@@ -82,3 +82,4 @@ For user buying BCUBE on stage boundaries or when netAllocatedBcube exceeds stag
 * Token: `0x93C9175E26F57d2888c7Df8B470C9eeA5C0b0A93`
 * Treasury: `0xC1D1b440f9e012C1300d5bd665850E03C3a51fDc`
 * Staking: `0xEf4C1296898eD7235d31d9A8Cc242C08Ac61b397`
+* Treasury Public Sale: `0x9741FCB37249584F52c7DC613e5f2bc6280D463e`
