@@ -72,6 +72,11 @@ contract BCubePublicSale is WhitelistedRole, ReentrancyGuard {
   uint256 public constant HARD_CAP               = 15_000_000e18;               // 15m
   uint256 public constant PRIVATE_ALLOCATION_CAP =  6666666666666666666666667;  // 6.666666666666666666666667m
   uint256 public constant PUBLIC_LAUNCHPAD_CAP   =  2_250_000e18;               // 2.75m
+
+  // Global min per wallet, in Dollar Units (1 dollar = 100,000,000 dollar units)
+  uint256 public minContributionDollarUnits = 500e8;    // $500
+  // Global max par wallet, in Dollar Units (1 dollar = 100,000,000 dollar units)
+  uint256 public maxContributionDollarUnits = 50000e8;  // $50k
   
   uint256 public netSoldBcube;
   uint256 public netPrivateAllocatedBcube;
@@ -103,6 +108,7 @@ contract BCubePublicSale is WhitelistedRole, ReentrancyGuard {
     uint256 newAllocation
   );
   event LogLaunchpadReserveChanged(uint256 newReserve);
+  event LogLimitChanged(uint256 _newMin, uint256 _newMax);
   
   /**
     * @param _openingTime public sale starting time
@@ -137,6 +143,12 @@ contract BCubePublicSale is WhitelistedRole, ReentrancyGuard {
     // Add new admin for whitelisting, and remove msgSender as admin
     addWhitelistAdmin(_admin);
     renounceWhitelistAdmin();
+  }
+
+  function setContributionsLimits(uint256 _min, uint256 _max) public onlyWhitelistAdmin {
+    minContributionDollarUnits = _min;
+    maxContributionDollarUnits = _max;
+    emit LogLimitChanged(_min, _max);
   }
 
   function() external payable {
@@ -284,13 +296,16 @@ contract BCubePublicSale is WhitelistedRole, ReentrancyGuard {
     uint256 a1;
     uint256 a2;
     uint256 dollarUnitsUnused;
+    uint256 totalContribution = bcubeAllocationRegistry[_msgSender()]
+      .dollarUnitsPayed
+      .add(dollarUnits);
     require(
-      dollarUnits >= 500e8,
-      "BCubePublicSale: Minimal contribution is 500 USD"
+      totalContribution >= minContributionDollarUnits,
+      "BCubePublicSale: Minimum contribution not reached."
     );
     require(
-      dollarUnits <= 25000e8,
-      "BCubePublicSale: Maximal contribution is 25000 USD"
+      totalContribution <= maxContributionDollarUnits,
+      "BCubePublicSale: Maximum contribution exceeded"
     );  
     (rate, stage) = calcRate();
     uint256 current_hardcap = currentHardcap();
@@ -302,9 +317,7 @@ contract BCubePublicSale is WhitelistedRole, ReentrancyGuard {
     bcubeAllocatedToUser = rate.mul(dollarUnits);
     finalAllocation = netSoldBcube.add(bcubeAllocatedToUser);
     require(finalAllocation <= current_hardcap, "BCubePublicSale: Hard cap exceeded");
-    bcubeAllocationRegistry[_msgSender()].dollarUnitsPayed = bcubeAllocationRegistry[_msgSender()]
-      .dollarUnitsPayed
-      .add(dollarUnits);
+    bcubeAllocationRegistry[_msgSender()].dollarUnitsPayed = totalContribution;
     if (finalAllocation <= stageCap) {
       netSoldBcube = finalAllocation;
       if (stage == 1) {

@@ -133,6 +133,12 @@ describe("Treasury tests without private sale", async function () {
       from: "0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828",
     });
 
+    await publicTreasuryContract.methods.setContributionsLimits(
+      "50000000000",
+      "100000000000000",
+    ).send({
+      from: adminWallet,
+    });
 
     for (const account of [investor1, investor2, investor3, investor4, investor5, investor6]) {
       await publicTreasuryContract.methods.addWhitelisted(account).send({
