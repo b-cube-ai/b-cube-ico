@@ -69,14 +69,18 @@ contract BCubePublicSale is WhitelistedRole, ReentrancyGuard {
   uint256 public openingTime;
   uint256 public closingTime;
 
-  uint256 public constant HARD_CAP               = 15_000_000e18;               // 15m
-  uint256 public constant PRIVATE_ALLOCATION_CAP =  6666666666666666666666667;  // 6.666666666666666666666667m
-  uint256 public constant PUBLIC_LAUNCHPAD_CAP   =  2_250_000e18;               // 2.75m
+  uint256 public constant HARD_CAP               = 1_000_000e18;               // 1m
+  uint256 public constant PRIVATE_ALLOCATION_CAP =  0;  // 0
+  uint256 public constant PUBLIC_LAUNCHPAD_CAP   =  0;               // 0
 
-  // Global min per wallet, in Dollar Units (1 dollar = 100,000,000 dollar units)
-  uint256 public minContributionDollarUnits = 500e8;    // $500
+  //Per trancation min contribution, in Dollar Units (1 dollar = 100,000,000 dollar units)
+  uint256 public perTranMinContributionDollarUnits = 500e8;    // $500
+
+  // Per trancation max contribution in Dollar Units (1 dollar = 100,000,000 dollar units)
+  uint256 public perTranMaxContributionDollarUnits = 2500e8;  // $2500
+
   // Global max par wallet, in Dollar Units (1 dollar = 100,000,000 dollar units)
-  uint256 public maxContributionDollarUnits = 50000e8;  // $50k
+  uint256 public maxContributionDollarUnits = 10000e8;  // $10k
   
   uint256 public netSoldBcube;
   uint256 public netPrivateAllocatedBcube;
@@ -108,7 +112,7 @@ contract BCubePublicSale is WhitelistedRole, ReentrancyGuard {
     uint256 newAllocation
   );
   event LogLaunchpadReserveChanged(uint256 newReserve);
-  event LogLimitChanged(uint256 _newMin, uint256 _newMax);
+  event LogLimitChanged(uint256 _newPerTranmin, uint256 _newMax, uint256 _newPerTranMax);
   
   /**
     * @param _openingTime public sale starting time
@@ -145,10 +149,11 @@ contract BCubePublicSale is WhitelistedRole, ReentrancyGuard {
     renounceWhitelistAdmin();
   }
 
-  function setContributionsLimits(uint256 _min, uint256 _max) public onlyWhitelistAdmin {
-    minContributionDollarUnits = _min;
+  function setContributionsLimits(uint256 _perTranMin, uint256 _max, uint256 _perTranMax) public onlyWhitelistAdmin {
+    perTranMinContributionDollarUnits = _perTranMin;
     maxContributionDollarUnits = _max;
-    emit LogLimitChanged(_min, _max);
+    perTranMaxContributionDollarUnits = _perTranMax;
+    emit LogLimitChanged(_perTranMin, _max, _perTranMax);
   }
 
   function() external payable {
@@ -198,7 +203,7 @@ contract BCubePublicSale is WhitelistedRole, ReentrancyGuard {
     if (netSoldBcube < 1333333333333333333333333) { 
       return (66666666666, 1);    // Private round
     } else {
-      return (5e10, 2);           // Public round
+      return (5e10, 6);           // Public round
     }
   }
 
@@ -300,13 +305,17 @@ contract BCubePublicSale is WhitelistedRole, ReentrancyGuard {
       .dollarUnitsPayed
       .add(dollarUnits);
     require(
-      totalContribution >= minContributionDollarUnits,
-      "BCubePublicSale: Minimum contribution not reached."
+      dollarUnits >= perTranMinContributionDollarUnits,
+      "BCubePublicSale: Minimum contribution pre trancation not reached."
     );
     require(
       totalContribution <= maxContributionDollarUnits,
-      "BCubePublicSale: Maximum contribution exceeded"
+      "BCubePublicSale: Global maximum contribution exceeded"
     );  
+    require(
+      dollarUnits <= perTranMaxContributionDollarUnits,
+      "BCubePublicSale: Maximum contribution pre trancation exceeded"
+    ); 
     (rate, stage) = calcRate();
     uint256 current_hardcap = currentHardcap();
     if (stage == 1) {

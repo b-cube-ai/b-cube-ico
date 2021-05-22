@@ -8,18 +8,19 @@ const ADDRESS_USDT_TOKEN = '0xd92e713d051c37ebb2561803a3b5fbabc4962431';
 
 module.exports = async function (deployer) {
   const currentTimestamp = Math.floor(Date.now() / 1000);
-  const openingTime = 1614427200; // 2021-02-27T12:00:00.000Z
-  const closingTime = 1622116800; // 2021-05-27T12:00:00.000Z
+  const openingTime = 1621657828; // 2021-02-27T12:00:00.000Z Fri May 21 2021 14:00:24 GMT+0000
+  const closingTime = 1624284024; // 2021-05-27T12:00:00.000Z Mon Jun 21 2021 14:00:24 GMT+0000
   const listingTime = closingTime + 6912000;  // closingDate + 80j
 
   console.log(`openingTime ${new Date(openingTime * 1000)}`);
   console.log(`closingTime ${new Date(closingTime * 1000)}`);
   console.log(`listingTime ${new Date(listingTime * 1000)}`);
-
+  console.log(`work` ,BCUBEToken.networks);
   await deployer.deploy(
     Treasury,
     ADDRESS_WALLET_TEAM,
-    BCUBEToken.networks[4].address,
+    '0xcf58d4666F9b717B7055B77d04025E84b2Ca98dD',
+    //BCUBEToken.networks[4].address,
     openingTime,
     closingTime,
     ADDRESS_CHAINLINK_ETHUSD,
