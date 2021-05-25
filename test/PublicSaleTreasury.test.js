@@ -27,10 +27,10 @@ describe("Treasury tests without private sale", async function () {
     investor4,
     investor5,
     investor6,
-    
+
     bcubeToken,
     publicTreasury,
-    
+
     bcubeTokenContract,
     publicTreasuryContract;
 
@@ -117,7 +117,7 @@ describe("Treasury tests without private sale", async function () {
     bcubeTokenContract = new web3.eth.Contract(CONSTANTS.TOKEN_ABI, bcubeToken.address);
     privateSaleContract = new web3.eth.Contract(CONSTANTS.BPS_ABI, privateSale.address);
     publicTreasuryContract = new web3.eth.Contract(CONSTANTS.PUBLIC_SALE_TREASURY_ABI, publicTreasury.address);
-    
+
     usdtContract = new web3.eth.Contract(
       CONSTANTS.TETHER_ABI,
       CONSTANTS.TETHER_ADDRESS
@@ -159,7 +159,7 @@ describe("Treasury tests without private sale", async function () {
     const investInUSDT = async (from, amount) => {
       const usdtPrice = new BigNumber(await publicTreasuryContract.methods.fetchUSDTPrice().call());
       const usdtAmtToBuyBcube = new BigNumber(amount).times(new BigNumber("1e8")).div(usdtPrice);
-    
+
       // approve & mint
       await usdtContract.methods.approve(publicTreasury.address, usdtAmtToBuyBcube.times(new BigNumber("1e6")).toFixed(0)).send({
         from: from,
@@ -167,7 +167,7 @@ describe("Treasury tests without private sale", async function () {
       await usdtContract.methods.transfer(from, usdtAmtToBuyBcube.times(new BigNumber("1e6")).toFixed(0)).send({
         from: "0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828",
       });
-      
+
       await publicTreasuryContract.methods.buyBcubeUsingUSDT(usdtAmtToBuyBcube.times(new BigNumber('1e6')).toFixed(0)).send({
         from: from,
         gasLimit: new BigNumber("1000000"),
@@ -209,15 +209,15 @@ describe("Treasury tests without private sale", async function () {
 
       expect(
         new BigNumber(allocation.allocatedBcubePrivateRound).div(new BigNumber('1e18')).toFixed(0),
-      ).to.be.equal(allocations[`investor${index+1}`].private.div(new BigNumber('1e18')).toFixed(0), `Invalid PRIVATE ROUND allocation for investor${index+1}`);
+      ).to.be.equal(allocations[`investor${index + 1}`].private.div(new BigNumber('1e18')).toFixed(0), `Invalid PRIVATE ROUND allocation for investor${index + 1}`);
 
       expect(
         new BigNumber(allocation.allocatedBcubePrivateAllocation).div(new BigNumber('1e18')).toFixed(0),
-      ).to.be.equal(allocations[`investor${index+1}`].alloc.div(new BigNumber('1e18')).toFixed(0), `Invalid PRIVATE ALLOC allocation for investor${index+1}`);
+      ).to.be.equal(allocations[`investor${index + 1}`].alloc.div(new BigNumber('1e18')).toFixed(0), `Invalid PRIVATE ALLOC allocation for investor${index + 1}`);
 
       expect(
         new BigNumber(allocation.allocatedBcubePublicRound).div(new BigNumber('1e18')).toFixed(0),
-      ).to.be.equal(allocations[`investor${index+1}`].public.div(new BigNumber('1e18')).toFixed(0), `Invalid PUBLIC ROUND allocation for investor${index+1}`);
+      ).to.be.equal(allocations[`investor${index + 1}`].public.div(new BigNumber('1e18')).toFixed(0), `Invalid PUBLIC ROUND allocation for investor${index + 1}`);
     }
     console.log('---------------------------------------------');
   });
@@ -255,7 +255,7 @@ describe("Treasury tests without private sale", async function () {
     for (let week = 0; week <= 15; week++) {
       const when = listingTime + (week * oneWeek);
       const allowance = new BigNumber(await publicTreasuryContract.methods.calcAllowance(investor5, when).call()).div(new BigNumber('1e18')).toFixed(0);
-      switch(week) {
+      switch (week) {
         case 0:
           expect(allowance).to.be.equal('79167', `Invalid allowance for week ${week}`);
           break;
@@ -311,7 +311,7 @@ describe("Treasury tests without private sale", async function () {
   it("reverts for admin calling setListingTime() after listing", async function () {
     // listingTime arrives
     await timeMachine.advanceTimeAndBlock(6912000 + 864000);
-    
+
     await truffleAssert.reverts(
       publicTreasuryContract.methods.setListingTime(closingTime + 691200 + 96400).send({
         from: adminWallet
