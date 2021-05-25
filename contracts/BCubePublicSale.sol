@@ -196,15 +196,8 @@ contract BCubePublicSale is WhitelistedRole, ReentrancyGuard {
   }
 
   function calcRate() private view returns (uint256, uint8) {
-    // Two phases, with two different prices
-    // Phase 1 - Private Round: the first 1,333333333333333333333333m tokens at 0.15 USD
-    // Phase 2 - Public Round: the remaining tokens at 0.20 USD
-
-    if (netSoldBcube < 1333333333333333333333333) { 
-      return (66666666666, 1);    // Private round
-    } else {
-      return (5e10, 6);           // Public round
-    }
+    // Public Round: the remaining tokens at 0.60 USD
+      return (6e9, 2);           // Public round
   }
 
   /// @dev allowing resetting ETH priceFeed instance, in case current Chainlink contracts upgrade
@@ -318,26 +311,19 @@ contract BCubePublicSale is WhitelistedRole, ReentrancyGuard {
     ); 
     (rate, stage) = calcRate();
     uint256 current_hardcap = currentHardcap();
-    if (stage == 1) {
-      stageCap = 1333333333333333333333333;
-    } else {
-      stageCap = current_hardcap;
-    }
+   
+    stageCap = current_hardcap;
     bcubeAllocatedToUser = rate.mul(dollarUnits);
     finalAllocation = netSoldBcube.add(bcubeAllocatedToUser);
     require(finalAllocation <= current_hardcap, "BCubePublicSale: Hard cap exceeded");
     bcubeAllocationRegistry[_msgSender()].dollarUnitsPayed = totalContribution;
+    
     if (finalAllocation <= stageCap) {
       netSoldBcube = finalAllocation;
-      if (stage == 1) {
-        bcubeAllocationRegistry[_msgSender()].allocatedBcubePrivateRound = bcubeAllocationRegistry[_msgSender()]
-          .allocatedBcubePrivateRound
-          .add(bcubeAllocatedToUser);
-      } else {
+   
         bcubeAllocationRegistry[_msgSender()].allocatedBcubePublicRound = bcubeAllocationRegistry[_msgSender()]
           .allocatedBcubePublicRound
           .add(bcubeAllocatedToUser);
-      }
       return bcubeAllocatedToUser;
     } else {
       uint256 total;
