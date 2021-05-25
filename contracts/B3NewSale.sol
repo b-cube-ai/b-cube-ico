@@ -16,10 +16,6 @@ contract B3NewSale is WhitelistedRole, ReentrancyGuard {
     using SafeCast for uint256;
     using SafeERC20 for IERC20;
 
-    // For round = 1, 900K BCUBE will be available
-    // For round = 2, 100K BCUBE will be available
-    uint256 public round = 1;
-
     bool public isSecondRoundStarted = false;
 
     mapping(address => UserInfo) public bcubeAllocationRegistry;
@@ -276,12 +272,6 @@ contract B3NewSale is WhitelistedRole, ReentrancyGuard {
      */
     function executeAllocation(uint256 dollarUnits) private returns (uint256) {
         uint256 bcubeAllocatedToUser;
-        if (round == 2) {
-            require(
-                isSecondRoundStarted,
-                "B3NewSale: wait for second round to start"
-            );
-        }
         require(
             dollarUnits >= minContributionDollarUnits,
             "B3NewSale: Min contrbn $500 not reached."
@@ -300,10 +290,6 @@ contract B3NewSale is WhitelistedRole, ReentrancyGuard {
         );
         bcubeAllocatedToUser = BCUBE_PRICE_PER_USDT.mul(dollarUnits);
         netSoldBcube = netSoldBcube.add(bcubeAllocatedToUser);
-        // For round = 0, 900K BCUBE will be available
-        if (netSoldBcube.div(1e16).mul(1e18) >= 9_00_000e18) {
-            round = 2;
-        }
         require(
             netSoldBcube.div(1e16).mul(1e18) <= HARD_CAP,
             "B3NewSale: Exceeds hard cap"

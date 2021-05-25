@@ -9,7 +9,7 @@ const truffleAssert = require("truffle-assertions");
 const BigNumber = require("bignumber.js");
 const timeMachine = require("ganache-time-traveler");
 
-describe("B3NewSale tests", async function () {
+describe.only("B3NewSale tests", async function () {
     this.timeout(3600000);
 
     let snapshotId,
@@ -287,7 +287,7 @@ describe("B3NewSale tests", async function () {
         });
 
         const usdtPrice = new BigNumber(await b3NewSaleContract.methods.fetchUSDTPrice().call());
-        usdtAmtToBuyBcube = new BigNumber('2500').times(new BigNumber("1e8")).div(usdtPrice);
+        usdtAmtToBuyBcube = new BigNumber('2499').times(new BigNumber("1e8")).div(usdtPrice);
 
         for (const account of [account1, account2, account3]) {
             const amount = usdtAmtToBuyBcube.times(new BigNumber("1e6"));
@@ -307,18 +307,19 @@ describe("B3NewSale tests", async function () {
         };
 
         const account2alloc = await b3NewSaleContract.methods.bcubeAllocationRegistry(account2).call();
+        console.log(account2alloc);
         expect(
             new BigNumber(account2alloc.allocatedBCUBE).div(new BigNumber("1e16")).toFixed(0)
-        ).to.equal("1500");
+        ).to.equal("1499");
         expect(
             new BigNumber(account2alloc.dollarUnitsPayed).div(1e9).toFixed(0),
-            '2500'
+            '2499'
         );
 
         const netSoldBcube = await b3NewSaleContract.methods.netSoldBcube().call();
         expect(
             new BigNumber(netSoldBcube).div(new BigNumber("1e16")).toFixed(0)
-        ).to.equal(new BigNumber('9000').toFixed(0));
+        ).to.equal(new BigNumber('8998').toFixed(0));
     });
 
     it("tests previous buy, checking team's _wallet()", async function () {
