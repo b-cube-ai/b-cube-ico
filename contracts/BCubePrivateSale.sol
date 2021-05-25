@@ -25,7 +25,8 @@ contract BCubePrivateSale is TimedCrowdsale, WhitelistCrowdsale {
     /// @dev allowance is # of BCUBE each participant can withdraw from treasury.
     /// @param currentAllowance this allowance is in 4 stages tracked by currentAllowance
     /// @param shareWithdrawn tracks the amount of BCUBE already withdrawn from treasury
-    /// @param dollarUnitsPayed 1 dollar = 100,000,000 dollar units. This tracks dollar units payed by user to this contract
+    /// @param dollarUnitsPayed 1 dollar = 100,000,000 dollar units.
+    /// This tracks dollar units payed by user to this contract
     /// @param allocatedBcube amount of BCUBE allocated to this user
     struct UserInfo {
         uint256 dollarUnitsPayed;
@@ -215,7 +216,8 @@ contract BCubePrivateSale is TimedCrowdsale, WhitelistCrowdsale {
     /// then checks for net contribution to be <= $25000 for the user
     /// then calculates BCUBEs allocated to user from #BCUBE = rate * dollarUnits
     /// => #wBCUBE = ((#wBCUBE / unit dollar) for this stage) * dollarUnits
-    /// Now, if new netAllocatedBcube does not exceed stageCap, the user is directly assigned their calculated BCUBE share
+    /// Now, if new netAllocatedBcube does not exceed stageCap, the user is directly assigned their
+    /// calculated BCUBE share
     /// but if it exceeds the stage cap, then the user's BCUBE share for this stage remains same until stageCap (a1),
     /// and the exceeding allocation is recalculated using rate of the next stage (a2)
     /// then a1 + a2 is allocated to the user

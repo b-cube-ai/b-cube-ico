@@ -32,7 +32,7 @@ contract PublicSaleTreasury is BCubePublicSale {
         address indexed participant,
         uint256 bcubeAmountWithdrawn
     );
-    
+
     constructor(
         address payable _wallet,
         address _admin,
@@ -42,7 +42,6 @@ contract PublicSaleTreasury is BCubePublicSale {
         address _chainlinkETHPriceFeed,
         address _chainlinkUSDTPriceFeed,
         address _usdtContract,
-        address _privateSale,
         uint256 _listingTime
     )
         public
@@ -52,7 +51,6 @@ contract PublicSaleTreasury is BCubePublicSale {
             _chainlinkETHPriceFeed,
             _chainlinkUSDTPriceFeed,
             _usdtContract,
-            _privateSale,
             _wallet
         )
     {
@@ -70,68 +68,66 @@ contract PublicSaleTreasury is BCubePublicSale {
         emit LogListingTimeChange(prevListingTime, listingTime);
     }
 
-    function calcAllowance(address _who, uint256 _when) public view returns(uint256) {
+    function calcAllowance(address _who, uint256 _when)
+        public
+        view
+        returns (uint256)
+    {
         uint256 allowance;
-        uint256 increasePrivate = bcubeAllocationRegistry[_who]
-            .allocatedBcubePrivateAllocation.div(16)
-            .add(
-                bcubeAllocationRegistry[_who].allocatedBcubePrivateRound.div(16)
-            );
-        uint256 increasePublic = bcubeAllocationRegistry[_who].allocatedBcubePublicRound.div(12);
+        uint256 allocatedBCUBEs =
+            bcubeAllocationRegistry[_who].allocatedBCUBE.div(12);
         if (_when >= listingTime + 15 weeks) {
-            // 100% of Pivate Round tokens + 100% of Public Round tokens
-            allowance = bcubeAllocationRegistry[_who].allocatedBcubePrivateAllocation
-                .add(bcubeAllocationRegistry[_who].allocatedBcubePrivateRound)
-                .add(bcubeAllocationRegistry[_who].allocatedBcubePublicRound);
+            // 100% of allocated tokens
+            allowance = allocatedBCUBEs.mul(16);
         } else if (_when >= listingTime + 14 weeks) {
-            // 15 * 6.25% of Pivate Round tokens + 100% of Public Round tokens
-            allowance = increasePrivate.mul(15).add(bcubeAllocationRegistry[_who].allocatedBcubePublicRound);
+            // 15 * 6.25% of allocated tokens
+            allowance = allocatedBCUBEs.mul(15);
         } else if (_when >= listingTime + 13 weeks) {
-            // 14 * 6.25% of Pivate Round tokens + 100% of Public Round tokens
-            allowance = increasePrivate.mul(14).add(bcubeAllocationRegistry[_who].allocatedBcubePublicRound);
+            // 14 * 6.25% of allocated tokens
+            allowance = allocatedBCUBEs.mul(14);
         } else if (_when >= listingTime + 12 weeks) {
-            // 13 * 6.25% of Pivate Round tokens + 100% of Public Round tokens
-            allowance = increasePrivate.mul(13).add(bcubeAllocationRegistry[_who].allocatedBcubePublicRound);
+            // 13 * 6.25% of allocated tokens
+            allowance = allocatedBCUBEs.mul(13);
         } else if (_when >= listingTime + 11 weeks) {
-            // 12 * 6.25% of Pivate Round tokens + 100% of Public Round tokens
-            allowance = increasePrivate.mul(12).add(bcubeAllocationRegistry[_who].allocatedBcubePublicRound);
+            // 12 * 6.25% of allocated tokens
+            allowance = allocatedBCUBEs.mul(12);
         } else if (_when >= listingTime + 10 weeks) {
-            // 11 * 6.25% of Pivate Round tokens + 11 * 8.33% of Public Round tokens
-            allowance = increasePrivate.mul(11).add(increasePublic.mul(11));
+            // 11 * 8.33% of allocated tokens
+            allowance = allocatedBCUBEs.mul(11);
         } else if (_when >= listingTime + 9 weeks) {
-            // 10 * 6.25% of Pivate Round tokens + 10 * 8.33% of Public Round tokens
-            allowance = increasePrivate.mul(10).add(increasePublic.mul(10));
+            // 10 * 8.33% allocated tokens
+            allowance = allocatedBCUBEs.mul(10);
         } else if (_when >= listingTime + 8 weeks) {
-            // 9 * 6.25% of Pivate Round tokens + 9 * 8.33% of Public Round tokens
-            allowance = increasePrivate.mul(9).add(increasePublic.mul(9));
+            // 9 * 8.33% allocated tokens
+            allowance = allocatedBCUBEs.mul(9);
         } else if (_when >= listingTime + 7 weeks) {
-            // 8 * 6.25% of Pivate Round tokens + 8 * 8.33% of Public Round tokens
-            allowance = increasePrivate.mul(8).add(increasePublic.mul(8));
+            // 8 * 8.33% allocated tokens
+            allowance = allocatedBCUBEs.mul(8);
         } else if (_when >= listingTime + 6 weeks) {
-            // 7 * 6.25% of Pivate Round tokens + 7 * 8.33% of Public Round tokens
-            allowance = increasePrivate.mul(7).add(increasePublic.mul(7));
+            // 7 * 8.33% allocated tokens
+            allowance = allocatedBCUBEs.mul(7);
         } else if (_when >= listingTime + 5 weeks) {
-            // 6 * 6.25% of Pivate Round tokens + 6 * 8.33% of Public Round tokens
-            allowance = increasePrivate.mul(6).add(increasePublic.mul(6));
+            // 6 * 8.33% allocated tokens
+            allowance = allocatedBCUBEs.mul(6);
         } else if (_when >= listingTime + 4 weeks) {
-            // 5 * 6.25% of Pivate Round tokens + 5 * 8.33% of Public Round tokens
-            allowance = increasePrivate.mul(5).add(increasePublic.mul(5));
+            // 5 * 8.33% allocated tokens
+            allowance = allocatedBCUBEs.mul(5);
         } else if (_when >= listingTime + 3 weeks) {
-            // 4 * 6.25% of Pivate Round tokens + 4 * 8.33% of Public Round tokens
-            allowance = increasePrivate.mul(4).add(increasePublic.mul(4));
+            // 4 * 8.33% allocated tokens
+            allowance = allocatedBCUBEs.mul(4);
         } else if (_when >= listingTime + 2 weeks) {
-            // 3 * 6.25% of Pivate Round tokens + 3 * 8.33% of Public Round tokens
-            allowance = increasePrivate.mul(3).add(increasePublic.mul(3));
+            // 3 * 8.33% allocated tokens
+            allowance = allocatedBCUBEs.mul(3);
         } else if (_when >= listingTime + 1 weeks) {
-            // 2 * 6.25% of Pivate Round tokens + 2 * 8.33% of Public Round tokens
-            allowance = increasePrivate.mul(2).add(increasePublic.mul(2));
+            // 2 * 8.33% allocated tokens
+            allowance = allocatedBCUBEs.mul(2);
         } else if (_when >= listingTime) {
-            // 6.25% of Pivate Round tokens + 8.33% of Public Round tokens
-            allowance = increasePrivate.add(increasePublic);
+            // 8.33% allocated tokens
+            allowance = allocatedBCUBEs;
         }
         return allowance;
     }
-    
+
     /// @dev allows public sale participants to withdraw their allocated share of
     function shareWithdraw(uint256 bcubeAmount)
         external
@@ -139,19 +135,18 @@ contract PublicSaleTreasury is BCubePublicSale {
         nonReentrant
     {
         require(
-            bcubeAllocationRegistry[_msgSender()].allocatedBcubePrivateAllocation > 0
-            || bcubeAllocationRegistry[_msgSender()].allocatedBcubePrivateRound > 0
-            || bcubeAllocationRegistry[_msgSender()].allocatedBcubePublicRound > 0,
+            bcubeAllocationRegistry[_msgSender()].allocatedBCUBE > 0,
             "!saleParticipant || 0 BCUBE allocated"
         );
-        
+
         uint256 allowance = calcAllowance(_msgSender(), now);
         if (allowance != bcubeAllocationRegistry[_msgSender()].currentAllowance)
             bcubeAllocationRegistry[_msgSender()].currentAllowance = allowance;
 
-        uint256 finalWithdrawn = bcubeAllocationRegistry[_msgSender()]
-            .shareWithdrawn
-            .add(bcubeAmount);
+        uint256 finalWithdrawn =
+            bcubeAllocationRegistry[_msgSender()].shareWithdrawn.add(
+                bcubeAmount
+            );
         require(
             finalWithdrawn <=
                 bcubeAllocationRegistry[_msgSender()].currentAllowance,

@@ -25,6 +25,15 @@
     "truffle-assertions": "0.9.2"
   },
   "scripts": {
+    "clean": "rm -rf .config .npm .node-gyp node_modules && npm install",
+    "cleanSol": "rm -rf build/contracts",
+    "compile": "clear && truffle compile && npm run lint",
+    "coverage": "truffle run coverage",
+    "lint": "solhint \"contracts/**/*.sol\"",
+    "migrate": "clear && truffle migrate",
+    "migrateAll": "clear && truffle migrate --reset",
+    "recompile": "clear && npm run cleanSol && truffle compile --all && npm run lint",
+    "test": "clear && truffle test"
   },
   "repository": {
     "type": "git",
