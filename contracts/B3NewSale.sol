@@ -301,10 +301,13 @@ contract B3NewSale is WhitelistedRole, ReentrancyGuard {
         bcubeAllocatedToUser = BCUBE_PRICE_PER_USDT.mul(dollarUnits);
         netSoldBcube = netSoldBcube.add(bcubeAllocatedToUser);
         // For round = 0, 900K BCUBE will be available
-        if (netSoldBcube.div(1e16) >= 9_00_000e18) {
+        if (netSoldBcube.div(1e16).mul(1e18) >= 9_00_000e18) {
             round = 2;
         }
-        require(netSoldBcube <= HARD_CAP, "B3NewSale: Exceeds hard cap");
+        require(
+            netSoldBcube.div(1e16).mul(1e18) <= HARD_CAP,
+            "B3NewSale: Exceeds hard cap"
+        );
         // Updates dollarUnitsPayed in storage
         bcubeAllocationRegistry[_msgSender()]
             .dollarUnitsPayed = totalContribution;
