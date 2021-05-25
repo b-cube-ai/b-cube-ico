@@ -307,7 +307,6 @@ describe.only("B3NewSale tests", async function () {
         };
 
         const account2alloc = await b3NewSaleContract.methods.bcubeAllocationRegistry(account2).call();
-        console.log(account2alloc);
         expect(
             new BigNumber(account2alloc.allocatedBCUBE).div(new BigNumber("1e16")).toFixed(0)
         ).to.equal("1499");
