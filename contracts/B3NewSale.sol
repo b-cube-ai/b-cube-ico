@@ -27,8 +27,8 @@ contract B3NewSale is WhitelistedRole, ReentrancyGuard {
     uint256 public openingTime;
     uint256 public closingTime;
 
-    uint256 public constant HARD_CAP = 900_000e18; // 1 Million
-    uint256 public constant BCUBE_PRICE_PER_USDT = 16666666666; // 0.6 USDT
+    uint256 public constant HARD_CAP = 900_000e18; // 0.9 Million
+    uint256 public constant BCUBE_PRICE_PER_USDT = 16666666666; // 0.6 USDT => 1 / (0.6 * 10^10)
     // Maxium Contribution Per Wallet, e8 since USDT has 8 decimals
     uint256 public constant MAXIMUM_CONTRIBUTION_PER_WALLET = 1_000_0e8;
 
@@ -68,7 +68,7 @@ contract B3NewSale is WhitelistedRole, ReentrancyGuard {
         _;
     }
 
-    /// @dev ensuring BCUBE allocations in public sale don't exceed 1 Million
+    /// @dev ensuring BCUBE allocations in public sale don't exceed 0.9 Million
     modifier tokensRemaining() {
         require(netSoldBcube <= HARD_CAP, "B3NewSale: All tokens sold");
         _;
@@ -110,6 +110,18 @@ contract B3NewSale is WhitelistedRole, ReentrancyGuard {
         address _usdtContract,
         address payable _wallet
     ) public WhitelistedRole() {
+        require(
+            _openingTime > block.timestamp,
+            "B3NewSale: Opening time is in the past"
+        );
+        require(
+            _closingTime > _openingTime,
+            "B3NewSale: Opening time must be less than closing time"
+        );
+        require(
+            _wallet != address(0),
+            "B3NewSale: Wallet cannot be zero address"
+        );
         openingTime = _openingTime;
         closingTime = _closingTime;
         priceFeedETH = AggregatorV3Interface(_chainlinkETHPriceFeed);
