@@ -16,8 +16,6 @@ contract B3NewSale is WhitelistedRole, ReentrancyGuard {
     using SafeCast for uint256;
     using SafeERC20 for IERC20;
 
-    bool public isSecondRoundStarted = false;
-
     mapping(address => UserInfo) public bcubeAllocationRegistry;
 
     /// @dev variables whose instance fetch prices of USDT, ETH from Chainlink oracles
@@ -29,8 +27,8 @@ contract B3NewSale is WhitelistedRole, ReentrancyGuard {
     uint256 public openingTime;
     uint256 public closingTime;
 
-    uint256 public constant HARD_CAP = 1_000_000e18; // 1 Million
-    uint256 public constant BCUBE_PRICE_PER_USDT = 6e7; // 0.6 USDT
+    uint256 public constant HARD_CAP = 900_000e18; // 1 Million
+    uint256 public constant BCUBE_PRICE_PER_USDT = 16666666666; // 0.6 USDT
     // Maxium Contribution Per Wallet, e8 since USDT has 8 decimals
     uint256 public constant MAXIMUM_CONTRIBUTION_PER_WALLET = 1_000_0e8;
 
@@ -213,13 +211,6 @@ contract B3NewSale is WhitelistedRole, ReentrancyGuard {
     }
 
     /**
-     * @dev Starts Round 2 for 100K BCUBE Tokens
-     */
-    function startSecondRound() external onlyWhitelistAdmin {
-        isSecondRoundStarted = true;
-    }
-
-    /**
      * @dev allowing users to allocate BCUBEs for themselves using ETH
      * It fetches current price of ETH, multiples that by incoming ETH to calc total incoming dollar units, then
      * allocates appropriate amount of BCUBE to user based on current rate, stage
@@ -290,10 +281,7 @@ contract B3NewSale is WhitelistedRole, ReentrancyGuard {
         );
         bcubeAllocatedToUser = BCUBE_PRICE_PER_USDT.mul(dollarUnits);
         netSoldBcube = netSoldBcube.add(bcubeAllocatedToUser);
-        require(
-            netSoldBcube.div(1e16).mul(1e18) <= HARD_CAP,
-            "B3NewSale: Exceeds hard cap"
-        );
+        require(netSoldBcube <= HARD_CAP, "B3NewSale: Exceeds hard cap");
         // Updates dollarUnitsPayed in storage
         bcubeAllocationRegistry[_msgSender()]
             .dollarUnitsPayed = totalContribution;

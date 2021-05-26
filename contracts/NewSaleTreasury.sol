@@ -76,21 +76,9 @@ contract NewSaleTreasury is B3NewSale {
         uint256 allowance;
         uint256 allocatedBCUBEs =
             bcubeAllocationRegistry[_who].allocatedBCUBE.div(12);
-        if (_when >= listingTime + 15 weeks) {
+        if (_when >= listingTime + 11 weeks) {
             // 100% of allocated tokens
-            allowance = allocatedBCUBEs.mul(16);
-        } else if (_when >= listingTime + 14 weeks) {
-            // 15 * 6.25% of allocated tokens
-            allowance = allocatedBCUBEs.mul(15);
-        } else if (_when >= listingTime + 13 weeks) {
-            // 14 * 6.25% of allocated tokens
-            allowance = allocatedBCUBEs.mul(14);
-        } else if (_when >= listingTime + 12 weeks) {
-            // 13 * 6.25% of allocated tokens
-            allowance = allocatedBCUBEs.mul(13);
-        } else if (_when >= listingTime + 11 weeks) {
-            // 12 * 6.25% of allocated tokens
-            allowance = allocatedBCUBEs.mul(12);
+            allowance = bcubeAllocationRegistry[_who].allocatedBCUBE;
         } else if (_when >= listingTime + 10 weeks) {
             // 11 * 8.33% of allocated tokens
             allowance = allocatedBCUBEs.mul(11);

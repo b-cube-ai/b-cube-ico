@@ -251,16 +251,16 @@ describe.only("B3NewSale tests", async function () {
 
         const account2alloc = await b3NewSaleContract.methods.bcubeAllocationRegistry(account2).call();
         expect(
-            new BigNumber(account2alloc.allocatedBCUBE).div(new BigNumber("1e16")).toFixed(0)
-        ).to.equal("1500");
+            new BigNumber(account2alloc.allocatedBCUBE).div(new BigNumber("1e18")).toFixed(0)
+        ).to.equal("4167");
         expect(
             new BigNumber(account2alloc.dollarUnitsPayed).div(1e8).toFixed(0),
             ethDollars.toString()
         );
         const netSoldBcube = await b3NewSaleContract.methods.netSoldBcube().call();
         expect(
-            new BigNumber(netSoldBcube).div(new BigNumber("1e16")).toFixed(0)
-        ).to.equal("4500");
+            new BigNumber(netSoldBcube).div(new BigNumber("1e18")).toFixed(0)
+        ).to.equal("12500");
     });
 
     it("tests previous buy, checking team's _wallet()", async function () {
@@ -287,7 +287,7 @@ describe.only("B3NewSale tests", async function () {
         });
 
         const usdtPrice = new BigNumber(await b3NewSaleContract.methods.fetchUSDTPrice().call());
-        usdtAmtToBuyBcube = new BigNumber('2499').times(new BigNumber("1e8")).div(usdtPrice);
+        usdtAmtToBuyBcube = new BigNumber('2500').times(new BigNumber("1e8")).div(usdtPrice);
 
         for (const account of [account1, account2, account3]) {
             const amount = usdtAmtToBuyBcube.times(new BigNumber("1e6"));
@@ -308,17 +308,17 @@ describe.only("B3NewSale tests", async function () {
 
         const account2alloc = await b3NewSaleContract.methods.bcubeAllocationRegistry(account2).call();
         expect(
-            new BigNumber(account2alloc.allocatedBCUBE).div(new BigNumber("1e16")).toFixed(0)
-        ).to.equal("1499");
+            new BigNumber(account2alloc.allocatedBCUBE).div(new BigNumber("1e18")).toFixed(0)
+        ).to.equal("4167");
         expect(
             new BigNumber(account2alloc.dollarUnitsPayed).div(1e9).toFixed(0),
-            '2499'
+            '2500'
         );
 
         const netSoldBcube = await b3NewSaleContract.methods.netSoldBcube().call();
         expect(
-            new BigNumber(netSoldBcube).div(new BigNumber("1e16")).toFixed(0)
-        ).to.equal(new BigNumber('8998').toFixed(0));
+            new BigNumber(netSoldBcube).div(new BigNumber("1e18")).toFixed(0)
+        ).to.equal(new BigNumber('25000').toFixed(0));
     });
 
     it("tests previous buy, checking team's _wallet()", async function () {
@@ -453,6 +453,8 @@ describe.only("B3NewSale tests", async function () {
             value: web3.utils.toWei(ethToBuyBcube.toString(), "ether"),
             gasLimit: new BigNumber("1000000")
         });
+        ethDollars = new BigNumber(600);
+        ethToBuyBcube = ethDollars.times(1e8).div(ethPrice).toNumber();
 
         await truffleAssert.reverts(
             b3NewSaleContract.methods.buyBcubeUsingETH().send({
@@ -464,25 +466,27 @@ describe.only("B3NewSale tests", async function () {
         );
 
         // Multiple USDT invests should not exceed $10k
-        await b3NewSaleContract.methods.buyBcubeUsingUSDT('2500000000').send({
+        const usdtPrice = new BigNumber(await b3NewSaleContract.methods.fetchUSDTPrice().call());
+        usdtAmtToBuyBcube = new BigNumber('2500').times(new BigNumber("1e8")).div(usdtPrice);
+        await b3NewSaleContract.methods.buyBcubeUsingUSDT(usdtAmtToBuyBcube.times(new BigNumber('1e6')).toFixed(0)).send({
             from: account2,
-            gasLimit: new BigNumber("1000000")
+            gasLimit: new BigNumber("1000000"),
         });
-        await b3NewSaleContract.methods.buyBcubeUsingUSDT('2500000000').send({
+        await b3NewSaleContract.methods.buyBcubeUsingUSDT(usdtAmtToBuyBcube.times(new BigNumber('1e6')).toFixed(0)).send({
             from: account2,
-            gasLimit: new BigNumber("1000000")
+            gasLimit: new BigNumber("1000000"),
         });
-        await b3NewSaleContract.methods.buyBcubeUsingUSDT('2500000000').send({
+        await b3NewSaleContract.methods.buyBcubeUsingUSDT(usdtAmtToBuyBcube.times(new BigNumber('1e6')).toFixed(0)).send({
             from: account2,
-            gasLimit: new BigNumber("1000000")
+            gasLimit: new BigNumber("1000000"),
         });
-        await b3NewSaleContract.methods.buyBcubeUsingUSDT('2500000000').send({
+        await b3NewSaleContract.methods.buyBcubeUsingUSDT(usdtAmtToBuyBcube.times(new BigNumber('1e6')).toFixed(0)).send({
             from: account2,
-            gasLimit: new BigNumber("1000000")
+            gasLimit: new BigNumber("1000000"),
         });
 
         await truffleAssert.reverts(
-            b3NewSaleContract.methods.buyBcubeUsingUSDT('2500000000').send({
+            b3NewSaleContract.methods.buyBcubeUsingUSDT('600000000').send({
                 from: account2,
                 gasLimit: new BigNumber("1000000")
             }),
