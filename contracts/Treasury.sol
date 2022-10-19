@@ -1,10 +1,11 @@
-// SPDX-License-Identifier: Unlicense
+// SPDX-License-Identifier: ISC
+
 pragma solidity 0.5.17;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "./BCubePrivateSale.sol";
+import "./BCUBEPrivateSale.sol";
 
 /**
  * @title BCUBE Treasury
@@ -13,7 +14,7 @@ import "./BCubePrivateSale.sol";
  * @author Smit Rajput @ b-cube.ai
  **/
 
-contract Treasury is BCubePrivateSale {
+contract Treasury is BCUBEPrivateSale {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -100,7 +101,7 @@ contract Treasury is BCubePrivateSale {
         uint256 _listingTime
     )
         public
-        BCubePrivateSale(
+        BCUBEPrivateSale(
             wallet_,
             token_,
             openingTime_,

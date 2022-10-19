@@ -37,7 +37,7 @@ Following details have been implemented in Treasury.sol
 1. Deployer is the address that will deploy the 3 contracts, which is named as WhitelistAdmin in the contract.
 2. Team's address is the address that will initially have ownership of all tokens except private sale share. This address is named as \_wallet or wallet() in the contracts.
 3. Number of advisors and their % share will be decided by wallet().
-4. Public sale share will be distributed to users publically after the private sale.
+4. Public sale share will be distributed to users publicly after the private sale.
 5. BCUBEPrivateSale and Treasury will live on the same address as Treasury is inheriting BCUBEPrivateSale.
 
 ## Timeline for the entire sale (approx.)
@@ -50,20 +50,6 @@ Following details have been implemented in Treasury.sol
 6. First slot of BCUBE tokens of private sale investors are unlocked after 1 month of listing
 7. First slot of team, advisors are unlocked after 6 months of listing
 
-## Running the tests
-
-After 'npm install'ing in the project root,
-
-1. `truffle compile`
-2. `ganache-cli -a 25 -f "https://mainnet.infura.io/v3/your-infura-project-id" --unlock 0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828 --networkId 4`
-3. `truffle --network development test`
-
-In tests of BCUBE Private Sale, approx. 23 tests are seen failing by very narrow margins. Plz consider these as intended behaviour.
-
-Total tests: 195,
-Passing: 172,
-Failing: 23
-
 ## Math
 
 For user buying BCUBE on stage boundaries or when netAllocatedBcube exceeds stageCap
@@ -72,14 +58,23 @@ For user buying BCUBE on stage boundaries or when netAllocatedBcube exceeds stag
 
 ## Audit Comments
 
-### Warnings:
+### Warnings
 
 1. Fundamentally onlyWhitelistAdmin and the checks for advisor and private investor are doing the same thing, i.e. checking the root variables (\_whitelistAdmins for onlyWhitelistAdmin) for proof of change of variable on addition of admin/advisor/privateInvestor. It’s just that it looks a bit different for advisor/privateInvestor as their root variables (bcubeAllocationRegistry, advisors) are structured differently. Other solutions on top of this will only add to storage costs.
 2. Fixed.
 3. On line 112, 118 in BCubePrivateSale.sol, I’ve purposefully excluded accepting output variables other than int256 price, bcoz they’re simply not useful for us. Apart from this, the output format of the price feed matches exactly as recommended by Chainlink in the blog and also in their docs. And fixed the SafeMath.
 
-## Mainnet addresses
+## Addresses
 
-* Token: `0x93C9175E26F57d2888c7Df8B470C9eeA5C0b0A93`
-* Treasury: `0xC1D1b440f9e012C1300d5bd665850E03C3a51fDc`
-* Staking: `0xEf4C1296898eD7235d31d9A8Cc242C08Ac61b397`
+See [deployments](./deployments/)
+
+## Dev
+
+This project is based on Hardhat and hardhat-deploy plugin.
+
+```shell
+npx hardhat help
+npx hardhat test
+npx hardhat node
+npx hardhat deploy
+```
